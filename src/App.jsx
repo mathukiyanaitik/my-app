@@ -2,9 +2,9 @@
 window.global = window; 
 
 import React, { useState, useEffect } from 'react';
-// 1. RESTORED LOGO IMPORT
+// 1. YOUR CUSTOM LOGO IMPORT
 import logoImg from './assets/logo.png'; 
-import { Upload, AlertTriangle, Loader2, Download, Scale, Sparkles, User, LogOut, X, Wallet, Coins, ShieldCheck, PenTool, BrainCircuit, Globe, Zap, Heart, CheckCircle2, Building2, Lock, ChevronRight, Receipt, Printer, History } from 'lucide-react';
+import { Upload, AlertTriangle, Loader2, Download, Scale, Sparkles, User, LogOut, X, Wallet, Coins, ShieldCheck, PenTool, BrainCircuit, Globe, Zap, Heart, CheckCircle2, Building2, Lock, ChevronRight, Receipt, Printer, History, ArrowUpRight } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
 // PDF Worker Fix: Try local, fallback to CDN
@@ -50,7 +50,7 @@ function App() {
   // --- STATE ---
   const [activeTab, setActiveTab] = useState("analyze"); 
   const [loading, setLoading] = useState(false);
-  const [imgError, setImgError] = useState(false); // Track if logo fails to load
+  const [imgError, setImgError] = useState(false); 
   
   // Location & Wallet
   const [country, setCountry] = useState("India"); 
@@ -118,6 +118,12 @@ function App() {
   const getFlagUrl = (countryName) => {
     const c = countries.find(c => c.name === countryName);
     return c ? `https://flagcdn.com/w40/${c.code}.png` : "";
+  };
+
+  // --- NAVIGATION LOGIC ---
+  const goHome = () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setActiveTab("analyze");
   };
 
   // --- RECEIPT GENERATOR (GoDaddy Style) ---
@@ -245,7 +251,6 @@ function App() {
       
       const amount = isIndia ? 100 : PRICING.GLOBAL.COST_PER_ACTION;
       
-      // Update Wallet
       if (isIndia) {
           const newBalance = walletBalance + amount;
           setWalletBalance(newBalance);
@@ -255,7 +260,6 @@ function App() {
           alert("Global Payment Accepted.");
       }
 
-      // Generate Transaction Record
       const newTxn = {
           id: Math.floor(Math.random() * 10000000000).toString(),
           date: new Date().toLocaleDateString('en-GB'),
@@ -269,7 +273,6 @@ function App() {
       setTransactions(updatedTxns);
       if(user) localStorage.setItem(`txns_${user.email}`, JSON.stringify(updatedTxns));
       
-      // Auto-Open Receipt
       generateReceipt(newTxn);
 
       setShowPaymentModal(false);
@@ -416,18 +419,18 @@ function App() {
       
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm px-4 md:px-8 py-4 flex justify-between items-center transition-all">
-        <div className="flex items-center gap-3">
-             {/* RESTORED LOGO OR FALLBACK ICON */}
+        {/* CLICKABLE LOGO TO HOME */}
+        <div onClick={goHome} className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity">
             <div className={`w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br ${THEME.primary} flex items-center justify-center text-white shadow-lg`}>
                 {!imgError ? (
-                   <img src={logoImg} alt="Unilex AI" className="w-full h-full object-cover" onError={() => setImgError(true)} />
+                   <img src={logoImg} alt="Unilex AI" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform" onError={() => setImgError(true)} />
                  ) : (
                    <BrainCircuit className="w-6 h-6"/>
                  )}
             </div>
             <div>
                 <span className="text-xl font-black tracking-tighter text-slate-900">Unilex<span className="text-blue-600">AI</span></span>
-                {isIndia && <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase"><Globe className="w-3 h-3"/> India Region</div>}
+                {isIndia && <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase"><Globe className="w-3 h-3"/> India</div>}
             </div>
         </div>
 
@@ -469,13 +472,13 @@ function App() {
           </div>
           
           <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
-              Legal Intelligence. <br/>
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Reimagined.</span>
+              Universal Legal Intelligence. <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Unified & Addictive.</span>
           </h1>
           
           <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
-              The world's most advanced AI for Contract Auditing and Drafting.
-              Tailored for <span className="font-bold text-slate-900">{country}</span> Law.
+              We turned complex law into a simple, addictive superpower. 
+              Instant Contract Audits and Drafting tailored for <span className="font-bold text-slate-900">{country}</span>.
           </p>
 
           {/* TAB SWITCHER */}
@@ -504,21 +507,26 @@ function App() {
                           <>
                             <input type="file" onChange={handleFileUpload} className="hidden" id="file-upload"/>
                             <label htmlFor="file-upload" className="cursor-pointer group">
-                                <div className="w-24 h-24 mx-auto bg-blue-50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 group-hover:bg-blue-100 transition-all shadow-sm">
-                                    <Upload className="w-10 h-10 text-blue-600"/>
+                                <div className="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center mb-6 group-hover:scale-110 shadow-lg border border-slate-100 transition-all relative">
+                                    <div className="absolute inset-0 bg-blue-100 rounded-full opacity-0 group-hover:opacity-50 animate-ping"></div>
+                                    <Upload className="w-10 h-10 text-blue-600 relative z-10"/>
                                 </div>
                                 <h3 className="text-2xl font-bold text-slate-900 mb-2">Drop your Contract here</h3>
-                                <p className="text-slate-500 mb-8">Supports PDF, DOCX, Images • Private & Secure</p>
+                                <p className="text-slate-500 mb-8">PDF, DOCX, Images • Bank-Grade Security</p>
                                 
-                                <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border border-slate-200">
+                                {/* RESTORED UPLOAD VISUALS */}
+                                <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border border-slate-200 group-hover:border-blue-300 transition-colors">
                                     <div className="text-left">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Per Scan</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Cost / Scan</p>
                                         <p className="text-lg font-black text-slate-900">{isIndia ? `₹${PRICING.INDIA.COST_PER_ACTION}` : `$${PRICING.GLOBAL.COST_PER_ACTION}`}</p>
                                     </div>
                                     <div className="h-8 w-px bg-slate-200"></div>
                                     <div className="text-left">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Wallet</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase">Your Wallet</p>
                                         <p className={`text-lg font-black ${walletBalance > 0 ? "text-green-600" : "text-slate-900"}`}>{isIndia ? `₹${walletBalance}` : "N/A"}</p>
+                                    </div>
+                                    <div className="ml-2 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+                                        <ArrowUpRight className="w-4 h-4 text-slate-400"/>
                                     </div>
                                 </div>
                             </label>
@@ -637,18 +645,30 @@ function App() {
           )}
       </main>
 
-      {/* FOOTER */}
+      {/* FOOTER - THE STORY */}
       <footer className="mt-24 border-t border-slate-200 bg-white">
           <div className="max-w-7xl mx-auto px-6 py-12">
               <div className="grid md:grid-cols-4 gap-8 mb-12">
                   <div className="col-span-1 md:col-span-2 text-left">
                       <div className="flex items-center gap-2 mb-4">
-                          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white"><BrainCircuit className="w-5 h-5"/></div>
-                          <span className="text-xl font-black text-slate-900">Unilex AI</span>
+                            <div className={`w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br ${THEME.primary} flex items-center justify-center text-white`}>
+                                {!imgError ? (
+                                <img src={logoImg} alt="Logo" className="w-full h-full object-cover"/>
+                                ) : (
+                                <BrainCircuit className="w-5 h-5"/>
+                                )}
+                            </div>
+                          {/* NAME IDENTICAL TO TOP */}
+                          <span className="text-xl font-black text-slate-900">Unilex<span className="text-blue-600">AI</span></span>
                       </div>
-                      <p className="text-sm text-slate-500 max-w-sm leading-relaxed">
-                          Democratizing high-end legal intelligence. 
-                          We combine advanced Generative AI with localized legal frameworks to make contract operations instant, affordable, and accessible.
+                      
+                      {/* THE ADDICTIVE STORY */}
+                      <p className="text-sm text-slate-500 max-w-sm leading-relaxed font-medium">
+                          <strong className="text-slate-900">Uni</strong>versal + <strong className="text-slate-900">Lex</strong> (Law). 
+                          <br/><br/>
+                          Born from the belief that justice shouldn't have a price tag. 
+                          We combined military-grade encryption with the world's smartest LLMs to build a legal brain that fits in your pocket. 
+                          We are making elite legal intelligence addictive, instant, and accessible to 8 billion people.
                       </p>
                   </div>
                   <div className="text-left">
@@ -661,7 +681,7 @@ function App() {
                   <div className="text-left">
                       <h4 className="font-bold text-slate-900 mb-4">Company</h4>
                       <ul className="space-y-2 text-sm text-slate-500">
-                          <li><a href="#" className="hover:text-blue-600">About Us</a></li>
+                          <li><a href="#" className="hover:text-blue-600">Our Story</a></li>
                           <li><a href="#" className="hover:text-blue-600">Privacy Policy</a></li>
                           <li><a href={PRICING.GLOBAL.PAY_LINK} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-pink-600 font-bold hover:text-pink-700 mt-2">
                                   <Heart className="w-4 h-4 fill-current"/> Support Us
@@ -672,7 +692,7 @@ function App() {
               </div>
               
               <div className="pt-8 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
-                  <p>© 2025 Unilex AI Technologies. All rights reserved.</p>
+                  <p>© 2025 Unilex AI. All rights reserved.</p>
                   <div className="flex items-center gap-2">
                       <Building2 className="w-3 h-3"/>
                       <span>Registered Entity • Data Processed Securely via 256-bit SSL</span>
@@ -681,7 +701,7 @@ function App() {
           </div>
       </footer>
 
-      {/* --- MODALS --- */}
+      {/* --- MODALS (Auth & Payment) --- */}
       {showAuthModal && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
               <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative border border-white/50">
