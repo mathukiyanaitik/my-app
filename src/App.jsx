@@ -2,9 +2,14 @@
 window.global = window; 
 
 import React, { useState, useEffect, useRef } from 'react';
-// YOUR LOGO IMPORT
 import logoImg from './assets/logo.png'; 
-import { Upload, AlertTriangle, Loader2, Download, ShieldCheck, PenTool, BrainCircuit, Globe, Zap, Heart, CheckCircle2, Building2, ChevronRight, Receipt, Printer, ArrowUpRight, ChevronDown, Check, BookOpen, MessageSquare, ArrowUp, Mail, Phone, Wallet, LogOut, X } from 'lucide-react';
+// FIXED: Using only safe, standard icons to prevent crashes
+import { 
+    Upload, AlertTriangle, Loader2, Download, ShieldCheck, PenTool, 
+    Zap, Heart, CheckCircle2, Building2, ChevronRight, Receipt, 
+    ArrowUpRight, ChevronDown, Check, BookOpen, MessageSquare, 
+    ArrowUp, Mail, Phone, Wallet, LogOut, X, Globe, Coins 
+} from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
@@ -30,34 +35,13 @@ const REGIONAL_CONFIG = {
         code: "gb", currency: "GBP", symbol: "£", cost: 2.50, bonus: 40, 
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     },
-    "Canada": { 
-        code: "ca", currency: "CAD", symbol: "C$", cost: 4.50, bonus: 70, 
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
-    "Australia": { 
-        code: "au", currency: "AUD", symbol: "A$", cost: 5.00, bonus: 75, 
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
-    "Germany": { 
-        code: "de", currency: "EUR", symbol: "€", cost: 3.00, bonus: 45, 
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
-    "United Arab Emirates": { 
-        code: "ae", currency: "AED", symbol: "AED", cost: 12.00, bonus: 180, 
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
     "Global": { 
         code: "gl", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     }
 };
 
-const THEME = {
-    primary: "from-slate-900 to-slate-800",
-    accent: "from-blue-600 to-indigo-600",
-};
-
-const docTypes = ["Non-Disclosure Agreement (NDA)", "Employment Contract", "Freelance Service Agreement", "Rental/Lease Agreement", "SaaS / Software License", "Privacy Policy & TOS", "Last Will and Testament", "Partnership Deed", "Custom Legal Request"];
+const docTypes = ["Non-Disclosure Agreement (NDA)", "Employment Contract", "Freelance Agreement", "Rental Agreement", "SaaS License", "Privacy Policy", "Last Will", "Partnership Deed", "Legal Notice"];
 
 // --- CUSTOM DROPDOWN COMPONENT ---
 const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
@@ -123,7 +107,7 @@ function App() {
   const [jurisdiction, setJurisdiction] = useState("United States"); 
   const [walletBalance, setWalletBalance] = useState(0);
 
-  // Views
+  // Views & Modals
   const [showStory, setShowStory] = useState(false); 
   const [showContact, setShowContact] = useState(false); 
   
@@ -150,12 +134,12 @@ function App() {
   const [transactionId, setTransactionId] = useState("");
   const [billingInfo, setBillingInfo] = useState({ address: "", city: "", state: "", zip: "" });
 
-  // --- HELPER ---
+  // --- HELPER: Safely get config ---
   const getConfig = () => REGIONAL_CONFIG[userLocation] || REGIONAL_CONFIG["Global"];
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    // 1. SAFE PDF WORKER SETUP (Prevents Crashing)
+    // 1. STABLE PDF WORKER
     const setWorker = async () => {
         try { 
             pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -190,16 +174,29 @@ function App() {
           if (data && data.country_name) {
               const detectedName = Object.keys(REGIONAL_CONFIG).includes(data.country_name) ? data.country_name : "Global";
               setUserLocation(detectedName);
-              setJurisdiction(data.country_name);
+              // Set Jurisdiction if detected, otherwise default
+              if (REGIONAL_CONFIG[data.country_name]) setJurisdiction(data.country_name);
           }
-      } catch (e) { console.warn("Location detection failed, using Global"); }
+      } catch (e) { console.warn("Location detection failed, defaulting to Global"); }
   };
 
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
-  const goHome = () => { scrollToTop(); setShowStory(false); setActiveTab("analyze"); };
-  const handleContactSubmit = (e) => { e.preventDefault(); alert("Message sent."); setContactForm({name:"",email:"",phone:"",message:""}); setShowContact(false); };
+  
+  const goHome = () => { 
+      scrollToTop(); 
+      setShowStory(false); 
+      setShowContact(false);
+      setActiveTab("analyze"); 
+  };
 
-  // --- PAYMENTS ---
+  const handleContactSubmit = (e) => { 
+      e.preventDefault(); 
+      alert("Message sent! We will contact you at " + contactForm.email); 
+      setContactForm({name:"",email:"",phone:"",message:""}); 
+      setShowContact(false); 
+  };
+
+  // --- PAYMENT LOGIC ---
   const processPaymentCheck = () => {
       const config = getConfig();
       if (walletBalance >= config.cost) {
@@ -283,7 +280,7 @@ function App() {
   const handleLogout = () => { authService.logout(); setUser(null); setWalletBalance(0); setDocumentHistory([]); setTransactions([]); };
   const loadHistory = () => { setDocumentHistory(historyService.getDocuments()); };
 
-  // --- AI ---
+  // --- AI HANDLERS ---
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -352,11 +349,11 @@ function App() {
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm px-4 md:px-8 py-4 flex justify-between items-center transition-all">
         <div onClick={goHome} className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity">
-            <div className={`w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br ${THEME.primary} flex items-center justify-center text-white shadow-lg`}>
+            <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center text-white shadow-lg">
                 {!imgError ? (
                    <img src={logoImg} alt="Unilex AI" className="w-full h-full object-cover transform group-hover:scale-110 transition-transform" onError={() => setImgError(true)} />
                  ) : (
-                   <BrainCircuit className="w-6 h-6"/>
+                   <Globe className="w-6 h-6"/>
                  )}
             </div>
             <div>
@@ -385,7 +382,7 @@ function App() {
                     <button onClick={handleLogout} className="p-2.5 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-500 transition-colors" title="Logout"><LogOut className="w-5 h-5"/></button>
                 </div>
             ) : (
-                <button onClick={() => openAuth("signup")} className={`bg-gradient-to-r ${THEME.accent} hover:shadow-lg hover:shadow-blue-500/30 text-white px-6 py-2.5 rounded-full font-bold transition-all transform hover:-translate-y-0.5`}>
+                <button onClick={() => openAuth("signup")} className="bg-blue-600 hover:shadow-lg hover:shadow-blue-500/30 text-white px-6 py-2.5 rounded-full font-bold transition-all transform hover:-translate-y-0.5">
                     Start Free
                 </button>
             )}
@@ -416,15 +413,33 @@ function App() {
                           We combined military-grade encryption with state-of-the-art Generative AI to create a system that understands the nuance of Indian Law, US Law, and 100+ other jurisdictions instantly.
                       </p>
                   </div>
-                  <p className="text-xl leading-relaxed">
-                      Unilex AI isn't just a tool. It's a movement to democratize justice. 
-                      Whether you are a freelancer in Bangalore signing your first contract, or a startup in Texas hiring your first employee, 
-                      Unilex ensures you never sign blindly again.
-                  </p>
               </div>
               
               <div className="mt-16 text-center">
                    <button onClick={() => {setShowStory(false); scrollToTop();}} className="bg-slate-900 text-white px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:scale-105 transition-transform">Start Using Unilex</button>
+              </div>
+          </div>
+      ) : showContact ? (
+          /* CONTACT MODAL VIEW */
+          <div className="max-w-xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-8">
+              <button onClick={() => {setShowContact(false); scrollToTop();}} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
+              
+              <div className="bg-white p-8 rounded-[2rem] shadow-2xl relative border border-white/50">
+                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6"><MessageSquare className="w-8 h-8"/></div>
+                  <h2 className="text-2xl font-black text-slate-900 mb-2 text-center">Contact Unilex</h2>
+                  <p className="text-center text-slate-500 text-sm mb-6">We'd love to hear from you. Expect a reply within 24 hours.</p>
+                  
+                  <form onSubmit={handleContactSubmit} className="space-y-4">
+                      <input type="text" placeholder="Your Name" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})}/>
+                      <input type="email" placeholder="Email Address" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})}/>
+                      <input type="tel" placeholder="Phone Number" className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.phone} onChange={e => setContactForm({...contactForm, phone: e.target.value})}/>
+                      <textarea placeholder="How can we help?" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium h-32 resize-none" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
+                      <button className="w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg bg-slate-900 hover:scale-[1.02] transition-all">Send Message</button>
+                  </form>
+                  
+                  <div className="mt-6 pt-6 border-t border-slate-100 flex justify-center gap-6 text-slate-400">
+                      <div className="flex items-center gap-2"><Mail className="w-5 h-5"/> <span>support@unilexai.com</span></div>
+                  </div>
               </div>
           </div>
       ) : (
@@ -538,7 +553,7 @@ function App() {
                                     <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">2. Define Parameters</label>
                                     <textarea value={userScenario} onChange={e => setUserScenario(e.target.value)} placeholder="Describe your requirement..." className="w-full p-5 bg-white rounded-xl border border-slate-200 shadow-sm h-40 resize-none outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all font-medium text-slate-700"></textarea>
                                 </div>
-                                <button onClick={handleCreateDoc} disabled={loading} className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-xl shadow-blue-500/20 bg-gradient-to-r ${THEME.accent} hover:scale-[1.01] transition-all flex items-center justify-center gap-3`}>
+                                <button onClick={handleCreateDoc} disabled={loading} className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-xl shadow-blue-500/20 bg-slate-900 hover:scale-[1.01] transition-all flex items-center justify-center gap-3`}>
                                     {loading ? <Loader2 className="w-6 h-6 animate-spin"/> : <Sparkles className="w-6 h-6"/>}
                                     <span>Generate Draft</span>
                                     <span className="bg-white/20 px-2 py-0.5 rounded text-sm font-medium">{config.symbol}{config.cost}</span>
@@ -600,17 +615,17 @@ function App() {
       )}
 
       {/* FOOTER */}
-      {!showStory && (
+      {!showStory && !showContact && (
         <footer className="mt-24 border-t border-slate-200 bg-white">
             <div className="max-w-7xl mx-auto px-6 py-12">
                 <div className="grid md:grid-cols-4 gap-8 mb-12">
                     <div className="col-span-1 md:col-span-2 text-left">
                         <div className="flex items-center gap-2 mb-4">
-                                <div className={`w-8 h-8 rounded-lg overflow-hidden bg-gradient-to-br ${THEME.primary} flex items-center justify-center text-white`}>
+                                <div className={`w-8 h-8 rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center text-white`}>
                                     {!imgError ? (
                                     <img src={logoImg} alt="Logo" className="w-full h-full object-cover"/>
                                     ) : (
-                                    <BrainCircuit className="w-5 h-5"/>
+                                    <Globe className="w-5 h-5"/>
                                     )}
                                 </div>
                             <span className="text-xl font-black text-slate-900">Unilex<span className="text-blue-600">AI</span></span>
@@ -673,33 +688,8 @@ function App() {
                           </>
                       )}
                       {authView === "otp" && <input type="text" placeholder="Enter OTP" className="w-full p-4 bg-slate-50 rounded-xl text-center text-2xl tracking-[0.5em] font-black outline-none border border-slate-200" value={otpInput} onChange={e => setOtpInput(e.target.value)}/>}
-                      <button className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg bg-gradient-to-r ${THEME.primary} hover:scale-[1.02] transition-all`}>{authView === "login" ? "Login" : authView === "signup" ? `Get ${config.symbol}${config.bonus} Free` : "Verify"}</button>
+                      <button className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg bg-slate-900 hover:scale-[1.02] transition-all`}>{authView === "login" ? "Login" : authView === "signup" ? `Get ${config.symbol}${config.bonus} Free` : "Verify"}</button>
                   </form>
-              </div>
-          </div>
-      )}
-
-      {/* CONTACT MODAL */}
-      {showContact && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
-              <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative border border-white/50">
-                  <button onClick={() => setShowContact(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><X className="w-6 h-6"/></button>
-                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6"><MessageSquare className="w-8 h-8"/></div>
-                  <h2 className="text-2xl font-black text-slate-900 mb-2 text-center">Contact Unilex</h2>
-                  <p className="text-center text-slate-500 text-sm mb-6">We'd love to hear from you. Expect a reply within 24 hours.</p>
-                  
-                  <form onSubmit={handleContactSubmit} className="space-y-4">
-                      <input type="text" placeholder="Your Name" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})}/>
-                      <input type="email" placeholder="Email Address" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})}/>
-                      <input type="tel" placeholder="Phone Number" className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.phone} onChange={e => setContactForm({...contactForm, phone: e.target.value})}/>
-                      <textarea placeholder="How can we help?" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium h-32 resize-none" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
-                      <button className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg bg-gradient-to-r ${THEME.primary} hover:scale-[1.02] transition-all`}>Send Message</button>
-                  </form>
-                  
-                  <div className="mt-6 pt-6 border-t border-slate-100 flex justify-center gap-6 text-slate-400">
-                      <a href="#" className="hover:text-blue-600 transition-colors"><Mail className="w-5 h-5"/></a>
-                      <a href="#" className="hover:text-blue-600 transition-colors"><PhoneIcon className="w-5 h-5"/></a>
-                  </div>
               </div>
           </div>
       )}
