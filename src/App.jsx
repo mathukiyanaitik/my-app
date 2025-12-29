@@ -2,11 +2,11 @@
 window.global = window; 
 
 import React, { useState, useEffect, useRef } from 'react';
+// YOUR LOGO IMPORT
 import logoImg from './assets/logo.png'; 
-import { Upload, AlertTriangle, Loader2, Download, Scale, Sparkles, User, LogOut, X, Wallet, Coins, ShieldCheck, PenTool, BrainCircuit, Globe, Zap, Heart, CheckCircle2, Building2, Lock, ChevronRight, Receipt, Printer, History, ArrowUpRight, ChevronDown, Check, BookOpen, Star, MessageSquare, ArrowUp, Mail, Phone as PhoneIcon } from 'lucide-react';
+import { Upload, AlertTriangle, Loader2, Download, ShieldCheck, PenTool, BrainCircuit, Globe, Zap, Heart, CheckCircle2, Building2, ChevronRight, Receipt, Printer, ArrowUpRight, ChevronDown, Check, BookOpen, MessageSquare, ArrowUp, Mail, Phone, Wallet, LogOut, X } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
-import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
@@ -16,7 +16,7 @@ import { historyService } from './utils/history';
 // 🔒 SECURE MODE
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// --- DYNAMIC GLOBAL CONFIGURATION (Currency & Pricing) ---
+// --- DYNAMIC GLOBAL CONFIGURATION ---
 const REGIONAL_CONFIG = {
     "India": { 
         code: "in", currency: "INR", symbol: "₹", cost: 15, bonus: 100, 
@@ -46,7 +46,6 @@ const REGIONAL_CONFIG = {
         code: "ae", currency: "AED", symbol: "AED", cost: 12.00, bonus: 180, 
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     },
-    // Fallback for rest of world
     "Global": { 
         code: "gl", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
@@ -60,7 +59,7 @@ const THEME = {
 
 const docTypes = ["Non-Disclosure Agreement (NDA)", "Employment Contract", "Freelance Service Agreement", "Rental/Lease Agreement", "SaaS / Software License", "Privacy Policy & TOS", "Last Will and Testament", "Partnership Deed", "Custom Legal Request"];
 
-// --- CUSTOM COMPONENT: LUXURY DROPDOWN ---
+// --- CUSTOM DROPDOWN COMPONENT ---
 const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -119,12 +118,12 @@ function App() {
   const [imgError, setImgError] = useState(false); 
   const [showScrollTop, setShowScrollTop] = useState(false);
   
-  // LOCATION & BILLING STATE
-  const [userLocation, setUserLocation] = useState("Global"); // Controls Pricing/Currency
-  const [jurisdiction, setJurisdiction] = useState("United States"); // Controls AI Law Context
+  // Location & Data
+  const [userLocation, setUserLocation] = useState("Global"); 
+  const [jurisdiction, setJurisdiction] = useState("United States"); 
   const [walletBalance, setWalletBalance] = useState(0);
 
-  // Views & Modals
+  // Views
   const [showStory, setShowStory] = useState(false); 
   const [showContact, setShowContact] = useState(false); 
   
@@ -138,7 +137,7 @@ function App() {
   const [authError, setAuthError] = useState("");
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", message: "" });
 
-  // Data
+  // Core App Data
   const [documentHistory, setDocumentHistory] = useState([]);
   const [transactions, setTransactions] = useState([]); 
   const [risks, setRisks] = useState(null);
@@ -151,14 +150,18 @@ function App() {
   const [transactionId, setTransactionId] = useState("");
   const [billingInfo, setBillingInfo] = useState({ address: "", city: "", state: "", zip: "" });
 
-  // --- HELPER: GET CURRENT CONFIG ---
+  // --- HELPER ---
   const getConfig = () => REGIONAL_CONFIG[userLocation] || REGIONAL_CONFIG["Global"];
 
   // --- INITIALIZATION ---
   useEffect(() => {
+    // 1. SAFE PDF WORKER SETUP (Prevents Crashing)
     const setWorker = async () => {
-        try { if (pdfWorker) pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker; } 
-        catch (e) { pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`; }
+        try { 
+            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+        } catch (e) { 
+            console.error("PDF Worker Error", e);
+        }
     };
     setWorker();
 
@@ -185,21 +188,18 @@ function App() {
           const response = await fetch('https://ipapi.co/json/');
           const data = await response.json();
           if (data && data.country_name) {
-              // 1. Set Billing Location
               const detectedName = Object.keys(REGIONAL_CONFIG).includes(data.country_name) ? data.country_name : "Global";
               setUserLocation(detectedName);
-              
-              // 2. Set Default Jurisdiction (can be changed by user)
               setJurisdiction(data.country_name);
           }
-      } catch (e) { console.warn("Location detection failed"); }
+      } catch (e) { console.warn("Location detection failed, using Global"); }
   };
 
   const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
   const goHome = () => { scrollToTop(); setShowStory(false); setActiveTab("analyze"); };
   const handleContactSubmit = (e) => { e.preventDefault(); alert("Message sent."); setContactForm({name:"",email:"",phone:"",message:""}); setShowContact(false); };
 
-  // --- WALLET & PAYMENT LOGIC ---
+  // --- PAYMENTS ---
   const processPaymentCheck = () => {
       const config = getConfig();
       if (walletBalance >= config.cost) {
@@ -216,8 +216,6 @@ function App() {
   const handlePaymentVerify = () => {
       if (!transactionId) { alert("Please enter Transaction ID"); return; }
       const config = getConfig();
-      
-      // Recharge Amount (e.g., 100 INR or 50 USD)
       const rechargeAmount = config.currency === "INR" ? 100 : 50; 
       
       const newBalance = walletBalance + rechargeAmount;
@@ -245,7 +243,7 @@ function App() {
       setTransactionId("");
   };
 
-  // --- AUTH HANDLERS ---
+  // --- AUTH ---
   const openAuth = (view) => { setAuthView(view); setShowAuthModal(true); setAuthError(""); setAuthForm({email:"",password:"",name:"",phone:""}); setOtpInput(""); };
 
   const handleAuthSubmit = async (e) => {
@@ -263,7 +261,6 @@ function App() {
         const result = authService.signup(authForm.email, authForm.password, authForm.name, authForm.phone);
         if (result.success && result.user) {
           setUser(result.user);
-          // DYNAMIC SIGNUP BONUS
           setWalletBalance(config.bonus);
           localStorage.setItem(`wallet_${result.user.email}`, config.bonus);
           setShowAuthModal(false);
@@ -286,7 +283,7 @@ function App() {
   const handleLogout = () => { authService.logout(); setUser(null); setWalletBalance(0); setDocumentHistory([]); setTransactions([]); };
   const loadHistory = () => { setDocumentHistory(historyService.getDocuments()); };
 
-  // --- AI HANDLERS ---
+  // --- AI ---
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -308,7 +305,6 @@ function App() {
         
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-        // USE JURISDICTION STATE FOR PROMPT
         const prompt = `Unilex AI Legal Expert for ${jurisdiction}. Strict Analysis. Output JSON: [{title, risk, advice}]. Text: ${extractedText.substring(0, 5000)}`;
         
         const result = await model.generateContent(prompt);
@@ -348,12 +344,12 @@ function App() {
   };
 
   // --- RENDER ---
-  const config = getConfig(); // Get current currency/price settings
+  const config = getConfig(); 
 
   return (
     <div className="min-h-screen font-sans text-slate-900 bg-[#F0F4F8] selection:bg-blue-100 pb-24 relative">
       
-      {/* 1. NAVBAR */}
+      {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm px-4 md:px-8 py-4 flex justify-between items-center transition-all">
         <div onClick={goHome} className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity">
             <div className={`w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br ${THEME.primary} flex items-center justify-center text-white shadow-lg`}>
@@ -365,13 +361,11 @@ function App() {
             </div>
             <div>
                 <span className="text-xl font-black tracking-tighter text-slate-900">Unilex<span className="text-blue-600">AI</span></span>
-                {/* DYNAMIC REGION BADGE */}
                 <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase"><Globe className="w-3 h-3"/> {userLocation}</div>
             </div>
         </div>
 
         <div className="flex items-center gap-3 md:gap-6">
-            {/* JURISDICTION SELECTOR (Does not affect currency) */}
             <div className="hidden md:block w-48">
                 <CustomDropdown options={Object.keys(REGIONAL_CONFIG).filter(k => k !== "Global")} value={jurisdiction} onChange={setJurisdiction} type="country" />
             </div>
@@ -398,7 +392,7 @@ function App() {
         </div>
       </nav>
 
-      {/* 2. OUR STORY (OVERLAY) */}
+      {/* STORY OVERLAY */}
       {showStory ? (
           <div className="max-w-4xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-8">
               <button onClick={() => {setShowStory(false); scrollToTop();}} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back to Tool</button>
@@ -411,7 +405,6 @@ function App() {
               <div className="prose prose-lg prose-slate mx-auto">
                   <p className="text-xl leading-relaxed mb-8">
                       For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms. 
-                      If you couldn't afford $500 an hour, you were left guessing.
                   </p>
                   <p className="text-xl leading-relaxed mb-8">
                       We asked a simple question: <strong>What if legal protection was as instant and accessible as sending a text?</strong>
@@ -436,10 +429,8 @@ function App() {
           </div>
       ) : (
         <>
-            {/* 3. HERO & MAIN TOOL */}
+            {/* HERO */}
             <main className="max-w-6xl mx-auto px-4 mt-12 text-center animate-in fade-in duration-700">
-                {/* REMOVED "Powered By" as requested */}
-                
                 <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
                     Universal Legal Intelligence. <br/>
                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Unified & Essential.</span>
@@ -450,7 +441,7 @@ function App() {
                     Instant Contract Audits and Drafting explicitly compliant with <span className="font-bold text-slate-900">{jurisdiction} Law</span>.
                 </p>
 
-                {/* TAB SWITCHER */}
+                {/* TABS */}
                 <div className="sticky top-24 z-40 flex justify-center mb-12">
                     <div className="p-1.5 rounded-full bg-white/80 backdrop-blur-md shadow-lg border border-slate-200/60 inline-flex gap-1">
                         <button onClick={() => setActiveTab("analyze")} className={`px-6 py-2.5 rounded-full text-sm font-bold transition-all flex items-center gap-2 ${activeTab === "analyze" ? "bg-slate-900 text-white shadow-md" : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"}`}>
@@ -467,7 +458,7 @@ function App() {
                     </div>
                 </div>
 
-                {/* --- ANALYZE TAB --- */}
+                {/* ANALYZE TAB */}
                 {activeTab === "analyze" && (
                     <div className={`relative p-1 rounded-3xl bg-gradient-to-b from-white to-blue-50 shadow-2xl max-w-3xl mx-auto border border-white`}>
                         <div className="bg-white/60 backdrop-blur-sm rounded-[22px] p-8 md:p-12 min-h-[400px] flex flex-col justify-center">
@@ -534,7 +525,7 @@ function App() {
                     </div>
                 )}
 
-                {/* --- CREATE TAB --- */}
+                {/* CREATE TAB */}
                 {activeTab === "create" && (
                     <div className="relative p-1 rounded-3xl bg-gradient-to-b from-white to-blue-50 shadow-2xl max-w-3xl mx-auto border border-white text-left">
                         <div className="bg-white/60 backdrop-blur-sm rounded-[22px] p-8 md:p-12">
@@ -571,7 +562,7 @@ function App() {
                     </div>
                 )}
                 
-                {/* --- TRANSACTIONS --- */}
+                {/* TRANSACTIONS */}
                 {activeTab === "transactions" && (
                     <div className="max-w-4xl mx-auto">
                         {transactions.length === 0 ? (
@@ -640,7 +631,7 @@ function App() {
                         <ul className="space-y-2 text-sm text-slate-500">
                             <li><button onClick={() => {setShowStory(true); scrollToTop()}} className="hover:text-blue-600 font-bold flex items-center gap-1"><BookOpen className="w-3 h-3"/> Our Story</button></li>
                             <li><button onClick={() => {setShowContact(true); scrollToTop()}} className="hover:text-blue-600 font-bold flex items-center gap-1"><Mail className="w-3 h-3"/> Contact Us</button></li>
-                            <li><a href={PRICING.GLOBAL.PAY_LINK} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-pink-600 font-bold hover:text-pink-700 mt-2"><Heart className="w-4 h-4 fill-current"/> Support Us</a></li>
+                            <li><a href={config.payLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-pink-600 font-bold hover:text-pink-700 mt-2"><Heart className="w-4 h-4 fill-current"/> Support Us</a></li>
                         </ul>
                     </div>
                 </div>
@@ -652,18 +643,17 @@ function App() {
         </footer>
       )}
 
-      {/* --- BACK TO TOP BUTTON --- */}
+      {/* TOP BUTTON */}
       {showScrollTop && (
           <button 
             onClick={scrollToTop} 
             className="fixed bottom-8 right-8 w-14 h-14 bg-slate-900 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-600 transition-all z-50 animate-in fade-in slide-in-from-bottom-4"
-            title="Back to Top"
           >
               <ArrowUp className="w-6 h-6"/>
           </button>
       )}
 
-      {/* --- AUTH MODAL --- */}
+      {/* AUTH MODAL */}
       {showAuthModal && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
               <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative border border-white/50">
@@ -689,7 +679,7 @@ function App() {
           </div>
       )}
 
-      {/* --- CONTACT US MODAL --- */}
+      {/* CONTACT MODAL */}
       {showContact && (
           <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
               <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative border border-white/50">
@@ -714,7 +704,7 @@ function App() {
           </div>
       )}
 
-      {/* --- WALLET DASHBOARD MODAL --- */}
+      {/* WALLET MODAL */}
       {showWalletModal && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in zoom-in-95 duration-200">
               <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center relative border border-white/50">
