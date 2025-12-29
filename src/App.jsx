@@ -2,9 +2,12 @@
 window.global = window; 
 
 import React, { useState, useEffect } from 'react';
+// 1. RESTORED LOGO IMPORT
+import logoImg from './assets/logo.png'; 
 import { Upload, AlertTriangle, Loader2, Download, Scale, Sparkles, User, LogOut, X, Wallet, Coins, ShieldCheck, PenTool, BrainCircuit, Globe, Zap, Heart, CheckCircle2, Building2, Lock, ChevronRight, Receipt, Printer, History } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
+// PDF Worker Fix: Try local, fallback to CDN
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 import mammoth from 'mammoth';
 import { Document, Packer, Paragraph, TextRun } from "docx";
@@ -47,6 +50,7 @@ function App() {
   // --- STATE ---
   const [activeTab, setActiveTab] = useState("analyze"); 
   const [loading, setLoading] = useState(false);
+  const [imgError, setImgError] = useState(false); // Track if logo fails to load
   
   // Location & Wallet
   const [country, setCountry] = useState("India"); 
@@ -64,7 +68,7 @@ function App() {
 
   // Data
   const [documentHistory, setDocumentHistory] = useState([]);
-  const [transactions, setTransactions] = useState([]); // Payment History
+  const [transactions, setTransactions] = useState([]); 
   const [risks, setRisks] = useState(null);
   const [contractText, setContractText] = useState("");
   const [docType, setDocType] = useState("Non-Disclosure Agreement (NDA)"); 
@@ -91,7 +95,6 @@ function App() {
         const savedBalance = localStorage.getItem(`wallet_${currentUser.email}`);
         setWalletBalance(savedBalance ? parseInt(savedBalance) : 0);
         
-        // Load Transactions
         const savedTxns = localStorage.getItem(`txns_${currentUser.email}`);
         setTransactions(savedTxns ? JSON.parse(savedTxns) : []);
     }
@@ -119,11 +122,10 @@ function App() {
 
   // --- RECEIPT GENERATOR (GoDaddy Style) ---
   const generateReceipt = (txn) => {
-      // Math Logic for Receipt
       const totalAmount = parseFloat(txn.amount);
-      const fees = 17.60; // Standard fee from example
+      const fees = 17.60; 
       const subTotalWithTax = totalAmount - fees;
-      const taxRate = 0.18; // 18% GST
+      const taxRate = 0.18; 
       const baseAmount = (subTotalWithTax / (1 + taxRate)).toFixed(2);
       const taxAmount = (subTotalWithTax - baseAmount).toFixed(2);
       const subTotal = baseAmount; 
@@ -243,7 +245,7 @@ function App() {
       
       const amount = isIndia ? 100 : PRICING.GLOBAL.COST_PER_ACTION;
       
-      // 1. Update Wallet
+      // Update Wallet
       if (isIndia) {
           const newBalance = walletBalance + amount;
           setWalletBalance(newBalance);
@@ -253,7 +255,7 @@ function App() {
           alert("Global Payment Accepted.");
       }
 
-      // 2. Generate Transaction Record
+      // Generate Transaction Record
       const newTxn = {
           id: Math.floor(Math.random() * 10000000000).toString(),
           date: new Date().toLocaleDateString('en-GB'),
@@ -267,7 +269,7 @@ function App() {
       setTransactions(updatedTxns);
       if(user) localStorage.setItem(`txns_${user.email}`, JSON.stringify(updatedTxns));
       
-      // 3. Auto-Open Receipt
+      // Auto-Open Receipt
       generateReceipt(newTxn);
 
       setShowPaymentModal(false);
@@ -415,8 +417,13 @@ function App() {
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm px-4 md:px-8 py-4 flex justify-between items-center transition-all">
         <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${THEME.primary} flex items-center justify-center text-white shadow-lg`}>
-                <BrainCircuit className="w-6 h-6"/>
+             {/* RESTORED LOGO OR FALLBACK ICON */}
+            <div className={`w-10 h-10 rounded-xl overflow-hidden bg-gradient-to-br ${THEME.primary} flex items-center justify-center text-white shadow-lg`}>
+                {!imgError ? (
+                   <img src={logoImg} alt="Unilex AI" className="w-full h-full object-cover" onError={() => setImgError(true)} />
+                 ) : (
+                   <BrainCircuit className="w-6 h-6"/>
+                 )}
             </div>
             <div>
                 <span className="text-xl font-black tracking-tighter text-slate-900">Unilex<span className="text-blue-600">AI</span></span>
