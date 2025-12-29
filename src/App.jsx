@@ -3,7 +3,7 @@ window.global = window;
 
 import React, { useState, useEffect, useRef } from 'react';
 import logoImg from './assets/logo.png'; 
-import { Upload, AlertTriangle, Loader2, Download, Scale, Sparkles, User, LogOut, X, Wallet, Coins, ShieldCheck, PenTool, BrainCircuit, Globe, Zap, Heart, CheckCircle2, Building2, Lock, ChevronRight, Receipt, Printer, History, ArrowUpRight, ChevronDown, Check, BookOpen, Star } from 'lucide-react';
+import { Upload, AlertTriangle, Loader2, Download, Scale, Sparkles, User, LogOut, X, Wallet, Coins, ShieldCheck, PenTool, BrainCircuit, Globe, Zap, Heart, CheckCircle2, Building2, Lock, ChevronRight, Receipt, Printer, History, ArrowUpRight, ChevronDown, Check, BookOpen, Star, MessageSquare, ArrowUp, Mail, Phone as PhoneIcon } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
@@ -16,18 +16,40 @@ import { historyService } from './utils/history';
 // 🔒 SECURE MODE
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// --- CONFIGURATION ---
-const PRICING = {
-    INDIA: {
-        CURRENCY: '₹',
-        SIGNUP_BONUS: 100,
-        COST_PER_ACTION: 15,
-        RECHARGE_LINK: "https://razorpay.me/@YOUR_INDIAN_PAYMENT_PAGE" 
+// --- DYNAMIC GLOBAL CONFIGURATION (Currency & Pricing) ---
+const REGIONAL_CONFIG = {
+    "India": { 
+        code: "in", currency: "INR", symbol: "₹", cost: 15, bonus: 100, 
+        payLink: "https://razorpay.me/@YOUR_INDIAN_LINK" 
     },
-    GLOBAL: {
-        CURRENCY: '$',
-        COST_PER_ACTION: 9.99,
-        PAY_LINK: "https://razorpay.me/@YOUR_GLOBAL_PAYMENT_PAGE"
+    "United States": { 
+        code: "us", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "United Kingdom": { 
+        code: "gb", currency: "GBP", symbol: "£", cost: 2.50, bonus: 40, 
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "Canada": { 
+        code: "ca", currency: "CAD", symbol: "C$", cost: 4.50, bonus: 70, 
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "Australia": { 
+        code: "au", currency: "AUD", symbol: "A$", cost: 5.00, bonus: 75, 
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "Germany": { 
+        code: "de", currency: "EUR", symbol: "€", cost: 3.00, bonus: 45, 
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "United Arab Emirates": { 
+        code: "ae", currency: "AED", symbol: "AED", cost: 12.00, bonus: 180, 
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    // Fallback for rest of world
+    "Global": { 
+        code: "gl", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     }
 };
 
@@ -35,12 +57,6 @@ const THEME = {
     primary: "from-slate-900 to-slate-800",
     accent: "from-blue-600 to-indigo-600",
 };
-
-const countries = [
-    { name: "United States", code: "us" }, { name: "India", code: "in" }, { name: "United Kingdom", code: "gb" },
-    { name: "Canada", code: "ca" }, { name: "Australia", code: "au" }, { name: "Germany", code: "de" },
-    { name: "United Arab Emirates", code: "ae" },
-];
 
 const docTypes = ["Non-Disclosure Agreement (NDA)", "Employment Contract", "Freelance Service Agreement", "Rental/Lease Agreement", "SaaS / Software License", "Privacy Policy & TOS", "Last Will and Testament", "Partnership Deed", "Custom Legal Request"];
 
@@ -59,8 +75,6 @@ const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const selectedOption = options.find(o => (type === "country" ? o.name : o) === value);
-
     return (
         <div className="relative" ref={dropdownRef}>
             <button 
@@ -68,10 +82,10 @@ const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
                 className="flex items-center justify-between w-full px-4 py-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 focus:ring-4 focus:ring-blue-500/10 transition-all shadow-sm"
             >
                 <div className="flex items-center gap-3">
-                    {type === "country" && (
-                        <img src={`https://flagcdn.com/w40/${selectedOption?.code}.png`} className="w-6 h-4 rounded shadow-sm object-cover" alt="flag"/>
+                    {type === "country" && REGIONAL_CONFIG[value] && (
+                        <img src={`https://flagcdn.com/w40/${REGIONAL_CONFIG[value].code}.png`} className="w-6 h-4 rounded shadow-sm object-cover" alt="flag"/>
                     )}
-                    <span className="font-bold text-slate-800">{type === "country" ? selectedOption?.name : value}</span>
+                    <span className="font-bold text-slate-800">{value}</span>
                 </div>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}/>
             </button>
@@ -79,16 +93,15 @@ const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
             {isOpen && (
                 <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
                     {options.map((opt, idx) => {
-                        const val = type === "country" ? opt.name : opt;
-                        const isSelected = val === value;
+                        const isSelected = opt === value;
                         return (
                             <div 
                                 key={idx} 
-                                onClick={() => { onChange(val); setIsOpen(false); }}
+                                onClick={() => { onChange(opt); setIsOpen(false); }}
                                 className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${isSelected ? "bg-blue-50" : "hover:bg-slate-50"}`}
                             >
-                                {type === "country" && <img src={`https://flagcdn.com/w40/${opt.code}.png`} className="w-5 h-3.5 rounded shadow-sm" alt="flag"/>}
-                                <span className={`flex-1 text-sm ${isSelected ? "font-bold text-blue-600" : "font-medium text-slate-700"}`}>{val}</span>
+                                {type === "country" && REGIONAL_CONFIG[opt] && <img src={`https://flagcdn.com/w40/${REGIONAL_CONFIG[opt].code}.png`} className="w-5 h-3.5 rounded shadow-sm" alt="flag"/>}
+                                <span className={`flex-1 text-sm ${isSelected ? "font-bold text-blue-600" : "font-medium text-slate-700"}`}>{opt}</span>
                                 {isSelected && <Check className="w-4 h-4 text-blue-600"/>}
                             </div>
                         )
@@ -104,14 +117,16 @@ function App() {
   const [activeTab, setActiveTab] = useState("analyze"); 
   const [loading, setLoading] = useState(false);
   const [imgError, setImgError] = useState(false); 
+  const [showScrollTop, setShowScrollTop] = useState(false);
   
-  // Location & Wallet
-  const [country, setCountry] = useState("India"); 
-  const [isIndia, setIsIndia] = useState(true);
+  // LOCATION & BILLING STATE
+  const [userLocation, setUserLocation] = useState("Global"); // Controls Pricing/Currency
+  const [jurisdiction, setJurisdiction] = useState("United States"); // Controls AI Law Context
   const [walletBalance, setWalletBalance] = useState(0);
 
-  // Views
+  // Views & Modals
   const [showStory, setShowStory] = useState(false); 
+  const [showContact, setShowContact] = useState(false); 
   
   // Auth
   const [user, setUser] = useState(null);
@@ -121,12 +136,12 @@ function App() {
   const [otpInput, setOtpInput] = useState("");
   const [generatedOtp, setGeneratedOtp] = useState(null);
   const [authError, setAuthError] = useState("");
+  const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", message: "" });
 
   // Data
   const [documentHistory, setDocumentHistory] = useState([]);
   const [transactions, setTransactions] = useState([]); 
   const [risks, setRisks] = useState(null);
-  const [contractText, setContractText] = useState("");
   const [docType, setDocType] = useState("Non-Disclosure Agreement (NDA)"); 
   const [userScenario, setUserScenario] = useState("");
   const [generatedDoc, setGeneratedDoc] = useState("");
@@ -135,6 +150,9 @@ function App() {
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [transactionId, setTransactionId] = useState("");
   const [billingInfo, setBillingInfo] = useState({ address: "", city: "", state: "", zip: "" });
+
+  // --- HELPER: GET CURRENT CONFIG ---
+  const getConfig = () => REGIONAL_CONFIG[userLocation] || REGIONAL_CONFIG["Global"];
 
   // --- INITIALIZATION ---
   useEffect(() => {
@@ -149,13 +167,17 @@ function App() {
         setUser(currentUser);
         loadHistory();
         const savedBalance = localStorage.getItem(`wallet_${currentUser.email}`);
-        setWalletBalance(savedBalance ? parseInt(savedBalance) : 0);
+        setWalletBalance(savedBalance ? parseFloat(savedBalance) : 0);
         
         const savedTxns = localStorage.getItem(`txns_${currentUser.email}`);
         setTransactions(savedTxns ? JSON.parse(savedTxns) : []);
     }
 
     detectUserLocation();
+
+    const handleScroll = () => { setShowScrollTop(window.scrollY > 300); };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const detectUserLocation = async () => {
@@ -163,57 +185,54 @@ function App() {
           const response = await fetch('https://ipapi.co/json/');
           const data = await response.json();
           if (data && data.country_name) {
-              const detectedIndia = data.country_code === 'IN';
-              setIsIndia(detectedIndia);
-              const matchedCountry = countries.find(c => c.name === data.country_name) ? data.country_name : (detectedIndia ? "India" : "United States");
-              setCountry(matchedCountry);
+              // 1. Set Billing Location
+              const detectedName = Object.keys(REGIONAL_CONFIG).includes(data.country_name) ? data.country_name : "Global";
+              setUserLocation(detectedName);
+              
+              // 2. Set Default Jurisdiction (can be changed by user)
+              setJurisdiction(data.country_name);
           }
       } catch (e) { console.warn("Location detection failed"); }
   };
 
-  const goHome = () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setShowStory(false);
-      setActiveTab("analyze");
-  };
+  const scrollToTop = () => { window.scrollTo({ top: 0, behavior: 'smooth' }); };
+  const goHome = () => { scrollToTop(); setShowStory(false); setActiveTab("analyze"); };
+  const handleContactSubmit = (e) => { e.preventDefault(); alert("Message sent."); setContactForm({name:"",email:"",phone:"",message:""}); setShowContact(false); };
 
   // --- WALLET & PAYMENT LOGIC ---
   const processPaymentCheck = () => {
-      if (isIndia) {
-          if (walletBalance >= PRICING.INDIA.COST_PER_ACTION) {
-              const newBalance = walletBalance - PRICING.INDIA.COST_PER_ACTION;
-              setWalletBalance(newBalance);
-              localStorage.setItem(`wallet_${user.email}`, newBalance);
-              return true;
-          } else {
-              setShowWalletModal(true); 
-              return false;
-          }
+      const config = getConfig();
+      if (walletBalance >= config.cost) {
+          const newBalance = walletBalance - config.cost;
+          setWalletBalance(parseFloat(newBalance.toFixed(2)));
+          localStorage.setItem(`wallet_${user.email}`, newBalance);
+          return true;
       } else {
           setShowWalletModal(true); 
-          return false; 
+          return false;
       }
   };
 
   const handlePaymentVerify = () => {
       if (!transactionId) { alert("Please enter Transaction ID"); return; }
+      const config = getConfig();
       
-      const amount = isIndia ? 100 : PRICING.GLOBAL.COST_PER_ACTION;
+      // Recharge Amount (e.g., 100 INR or 50 USD)
+      const rechargeAmount = config.currency === "INR" ? 100 : 50; 
       
-      if (isIndia) {
-          const newBalance = walletBalance + amount;
-          setWalletBalance(newBalance);
-          if(user) localStorage.setItem(`wallet_${user.email}`, newBalance);
-          alert("₹100 Added to Wallet!");
-      } else {
-          alert("Global Payment Accepted.");
-      }
+      const newBalance = walletBalance + rechargeAmount;
+      setWalletBalance(parseFloat(newBalance.toFixed(2)));
+      if(user) localStorage.setItem(`wallet_${user.email}`, newBalance);
+      
+      alert(`${config.symbol}${rechargeAmount} Added to Wallet!`);
 
       const newTxn = {
           id: Math.floor(Math.random() * 10000000000).toString(),
           date: new Date().toLocaleDateString('en-GB'),
-          amount: amount,
-          description: isIndia ? "Wallet Recharge" : "Document Process Fee",
+          amount: rechargeAmount,
+          currency: config.currency,
+          symbol: config.symbol,
+          description: "Wallet Recharge",
           txnId: transactionId,
           billing: { ...billingInfo }
       };
@@ -227,17 +246,13 @@ function App() {
   };
 
   // --- AUTH HANDLERS ---
-  const openAuth = (view) => { 
-      setAuthView(view); 
-      setShowAuthModal(true); 
-      setAuthError("");
-      setAuthForm({ email: "", password: "", name: "", phone: "" });
-      setOtpInput("");
-  };
+  const openAuth = (view) => { setAuthView(view); setShowAuthModal(true); setAuthError(""); setAuthForm({email:"",password:"",name:"",phone:""}); setOtpInput(""); };
 
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
     setAuthError("");
+    const config = getConfig();
+
     if (authView === "signup") {
       const fakeOtp = Math.floor(1000 + Math.random() * 9000).toString();
       setGeneratedOtp(fakeOtp);
@@ -248,10 +263,9 @@ function App() {
         const result = authService.signup(authForm.email, authForm.password, authForm.name, authForm.phone);
         if (result.success && result.user) {
           setUser(result.user);
-          if (isIndia) {
-              setWalletBalance(PRICING.INDIA.SIGNUP_BONUS);
-              localStorage.setItem(`wallet_${result.user.email}`, PRICING.INDIA.SIGNUP_BONUS);
-          }
+          // DYNAMIC SIGNUP BONUS
+          setWalletBalance(config.bonus);
+          localStorage.setItem(`wallet_${result.user.email}`, config.bonus);
           setShowAuthModal(false);
         } else { setAuthError(result.error || "Signup Failed"); }
       } else { setAuthError("Invalid OTP"); }
@@ -260,7 +274,7 @@ function App() {
         if (result.success) {
             setUser(result.user);
             const saved = localStorage.getItem(`wallet_${result.user.email}`);
-            setWalletBalance(saved ? parseInt(saved) : 0);
+            setWalletBalance(saved ? parseFloat(saved) : 0);
             const savedTxns = localStorage.getItem(`txns_${result.user.email}`);
             setTransactions(savedTxns ? JSON.parse(savedTxns) : []);
             setShowAuthModal(false);
@@ -269,17 +283,8 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-      authService.logout();
-      setUser(null);
-      setWalletBalance(0);
-      setDocumentHistory([]);
-      setTransactions([]);
-  };
-
-  const loadHistory = () => {
-      setDocumentHistory(historyService.getDocuments());
-  };
+  const handleLogout = () => { authService.logout(); setUser(null); setWalletBalance(0); setDocumentHistory([]); setTransactions([]); };
+  const loadHistory = () => { setDocumentHistory(historyService.getDocuments()); };
 
   // --- AI HANDLERS ---
   const handleFileUpload = async (e) => {
@@ -291,7 +296,6 @@ function App() {
 
     setLoading(true);
     setRisks(null);
-    setContractText("");
 
     try {
         let extractedText = "";
@@ -300,26 +304,24 @@ function App() {
             for (let i = 1; i <= pdf.numPages; i++) extractedText += (await (await pdf.getPage(i)).getTextContent()).items.map(s => s.str).join(" ");
         } else if (file.type.includes("word")) {
             extractedText = (await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() })).value;
-        } else {
-            extractedText = "Image Scan"; 
-        }
+        } else { extractedText = "Image Scan"; }
         
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-        const prompt = `Unilex AI Legal Expert for ${country}. Strict Analysis. Output JSON: [{title, risk, advice}]. Text: ${extractedText.substring(0, 5000)}`;
+        // USE JURISDICTION STATE FOR PROMPT
+        const prompt = `Unilex AI Legal Expert for ${jurisdiction}. Strict Analysis. Output JSON: [{title, risk, advice}]. Text: ${extractedText.substring(0, 5000)}`;
         
         const result = await model.generateContent(prompt);
         const jsonText = result.response.text().replace(/```json|```/g, '').trim();
         setRisks(JSON.parse(jsonText));
-        historyService.saveDocument({ type: "analysis", fileName: file.name, country, createdAt: new Date().toISOString() });
+        historyService.saveDocument({ type: "analysis", fileName: file.name, country: jurisdiction, createdAt: new Date().toISOString() });
         loadHistory();
     } catch (err) { 
         alert("Scan Failed. Credits Refunded."); 
-        if(isIndia) {
-            const refund = walletBalance + PRICING.INDIA.COST_PER_ACTION;
-            setWalletBalance(refund);
-            localStorage.setItem(`wallet_${user.email}`, refund);
-        }
+        const config = getConfig();
+        const refund = walletBalance + config.cost;
+        setWalletBalance(parseFloat(refund.toFixed(2)));
+        localStorage.setItem(`wallet_${user.email}`, refund);
     } 
     finally { setLoading(false); e.target.value = null; }
   };
@@ -331,10 +333,10 @@ function App() {
       try {
           const genAI = new GoogleGenerativeAI(API_KEY);
           const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-          const prompt = `Unilex AI Drafting Engine. Create professional ${docType} for ${country}. Scenario: ${userScenario}. Use Markdown.`;
+          const prompt = `Unilex AI Drafting Engine. Create professional ${docType} for ${jurisdiction}. Scenario: ${userScenario}. Use Markdown.`;
           const result = await model.generateContent(prompt);
           setGeneratedDoc(result.response.text());
-          historyService.saveDocument({ type: "generated", docType, country, createdAt: new Date().toISOString() });
+          historyService.saveDocument({ type: "generated", docType, country: jurisdiction, createdAt: new Date().toISOString() });
           loadHistory();
       } catch (e) { alert("Error generating."); } 
       finally { setLoading(false); }
@@ -346,8 +348,10 @@ function App() {
   };
 
   // --- RENDER ---
+  const config = getConfig(); // Get current currency/price settings
+
   return (
-    <div className="min-h-screen font-sans text-slate-900 bg-[#F0F4F8] selection:bg-blue-100 pb-24">
+    <div className="min-h-screen font-sans text-slate-900 bg-[#F0F4F8] selection:bg-blue-100 pb-24 relative">
       
       {/* 1. NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm px-4 md:px-8 py-4 flex justify-between items-center transition-all">
@@ -361,25 +365,25 @@ function App() {
             </div>
             <div>
                 <span className="text-xl font-black tracking-tighter text-slate-900">Unilex<span className="text-blue-600">AI</span></span>
-                {isIndia && <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase"><Globe className="w-3 h-3"/> India</div>}
+                {/* DYNAMIC REGION BADGE */}
+                <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 tracking-widest uppercase"><Globe className="w-3 h-3"/> {userLocation}</div>
             </div>
         </div>
 
         <div className="flex items-center gap-3 md:gap-6">
-            {/* Custom Dropdown for Country */}
+            {/* JURISDICTION SELECTOR (Does not affect currency) */}
             <div className="hidden md:block w-48">
-                <CustomDropdown options={countries} value={country} onChange={(val) => setCountry(val)} type="country" />
+                <CustomDropdown options={Object.keys(REGIONAL_CONFIG).filter(k => k !== "Global")} value={jurisdiction} onChange={setJurisdiction} type="country" />
             </div>
 
             {user ? (
                 <div className="flex items-center gap-4">
-                    {/* Wallet Badge */}
                     <button 
                         onClick={() => setShowWalletModal(true)} 
                         className="flex items-center gap-0 bg-slate-900 text-white pl-4 pr-1 py-1 rounded-full shadow-lg hover:shadow-xl transition-all border border-slate-700 active:scale-95"
                     >
                         <Wallet className="w-4 h-4 text-yellow-400 mr-2"/>
-                        <span className="font-bold text-sm mr-3">₹{walletBalance}</span>
+                        <span className="font-bold text-sm mr-3">{config.symbol}{walletBalance}</span>
                         <div className="bg-green-500 hover:bg-green-600 text-white w-6 h-6 rounded-full flex items-center justify-center transition-colors">
                             <span className="text-sm font-bold leading-none mb-0.5">+</span>
                         </div>
@@ -397,11 +401,11 @@ function App() {
       {/* 2. OUR STORY (OVERLAY) */}
       {showStory ? (
           <div className="max-w-4xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-8">
-              <button onClick={() => setShowStory(false)} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back to Tool</button>
+              <button onClick={() => {setShowStory(false); scrollToTop();}} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back to Tool</button>
               
               <div className="text-center mb-16">
                   <h1 className="text-6xl font-black text-slate-900 mb-6 tracking-tight">The Unilex Vision</h1>
-                  <p className="text-2xl text-slate-500 font-medium">Why we built the world's most intuitive legal brain.</p>
+                  <p className="text-2xl text-slate-500 font-medium">Why we built the world's most essential legal brain.</p>
               </div>
 
               <div className="prose prose-lg prose-slate mx-auto">
@@ -416,7 +420,7 @@ function App() {
                       <h3 className="text-2xl font-bold text-blue-900 mb-4 flex items-center gap-2"><Globe className="w-6 h-6"/> Uni + Lex</h3>
                       <p className="text-blue-800">
                           <strong>Uni</strong>versal Access + <strong>Lex</strong> (Law). 
-                          We combined military-grade encryption with state-of-the-art Generative AI to create a system that understands the nuance of Indian Law (and 100+ other jurisdictions) instantly.
+                          We combined military-grade encryption with state-of-the-art Generative AI to create a system that understands the nuance of Indian Law, US Law, and 100+ other jurisdictions instantly.
                       </p>
                   </div>
                   <p className="text-xl leading-relaxed">
@@ -427,25 +431,23 @@ function App() {
               </div>
               
               <div className="mt-16 text-center">
-                   <button onClick={() => setShowStory(false)} className="bg-slate-900 text-white px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:scale-105 transition-transform">Start Using Unilex</button>
+                   <button onClick={() => {setShowStory(false); scrollToTop();}} className="bg-slate-900 text-white px-8 py-4 rounded-full font-bold text-lg shadow-xl hover:scale-105 transition-transform">Start Using Unilex</button>
               </div>
           </div>
       ) : (
         <>
             {/* 3. HERO & MAIN TOOL */}
             <main className="max-w-6xl mx-auto px-4 mt-12 text-center animate-in fade-in duration-700">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-bold uppercase tracking-wide mb-6">
-                    <Zap className="w-3 h-3 fill-current"/> Powered by Gemini 1.5 Pro
-                </div>
+                {/* REMOVED "Powered By" as requested */}
                 
                 <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight leading-tight">
                     Universal Legal Intelligence. <br/>
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Unified & Indispensable.</span>
+                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Unified & Essential.</span>
                 </h1>
                 
                 <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
-                    We turned complex law into a simple, indispensable superpower. 
-                    Instant Contract Audits and Drafting tailored for <span className="font-bold text-slate-900">{country}</span>.
+                    We are experts in global legal frameworks.
+                    Instant Contract Audits and Drafting explicitly compliant with <span className="font-bold text-slate-900">{jurisdiction} Law</span>.
                 </p>
 
                 {/* TAB SWITCHER */}
@@ -480,19 +482,18 @@ function App() {
                                         <h3 className="text-2xl font-bold text-slate-900 mb-2">Drop your Contract here</h3>
                                         <p className="text-slate-500 mb-8">PDF, DOCX, Images • Bank-Grade Security</p>
                                         
-                                        {/* SMART WALLET TRIGGER IN UPLOAD AREA */}
                                         <div 
                                             onClick={(e) => { e.preventDefault(); setShowWalletModal(true); }}
                                             className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border border-slate-200 group-hover:border-blue-300 transition-colors cursor-pointer hover:shadow-md"
                                         >
                                             <div className="text-left">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Cost / Scan</p>
-                                                <p className="text-lg font-black text-slate-900">{isIndia ? `₹${PRICING.INDIA.COST_PER_ACTION}` : `$${PRICING.GLOBAL.COST_PER_ACTION}`}</p>
+                                                <p className="text-lg font-black text-slate-900">{config.symbol}{config.cost}</p>
                                             </div>
                                             <div className="h-8 w-px bg-slate-200"></div>
                                             <div className="text-left">
                                                 <p className="text-[10px] font-bold text-slate-400 uppercase">Your Wallet</p>
-                                                <p className={`text-lg font-black ${walletBalance > 0 ? "text-green-600" : "text-slate-900"}`}>{isIndia ? `₹${walletBalance}` : "N/A"}</p>
+                                                <p className={`text-lg font-black ${walletBalance > 0 ? "text-green-600" : "text-slate-900"}`}>{config.symbol}{walletBalance}</p>
                                             </div>
                                             <div className="ml-2 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
                                                 <ArrowUpRight className="w-4 h-4 text-slate-400"/>
@@ -549,7 +550,7 @@ function App() {
                                 <button onClick={handleCreateDoc} disabled={loading} className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-xl shadow-blue-500/20 bg-gradient-to-r ${THEME.accent} hover:scale-[1.01] transition-all flex items-center justify-center gap-3`}>
                                     {loading ? <Loader2 className="w-6 h-6 animate-spin"/> : <Sparkles className="w-6 h-6"/>}
                                     <span>Generate Draft</span>
-                                    <span className="bg-white/20 px-2 py-0.5 rounded text-sm font-medium">{isIndia ? `₹${PRICING.INDIA.COST_PER_ACTION}` : `$${PRICING.GLOBAL.COST_PER_ACTION}`}</span>
+                                    <span className="bg-white/20 px-2 py-0.5 rounded text-sm font-medium">{config.symbol}{config.cost}</span>
                                 </button>
                             </div>
                             {generatedDoc && (
@@ -595,7 +596,7 @@ function App() {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4 mt-4 md:mt-0">
-                                            <span className="text-xl font-black text-slate-900">{isIndia ? '₹' : '$'}{txn.amount}</span>
+                                            <span className="text-xl font-black text-slate-900">{txn.symbol}{txn.amount}</span>
                                         </div>
                                     </div>
                                 ))}
@@ -630,15 +631,15 @@ function App() {
                     <div className="text-left">
                         <h4 className="font-bold text-slate-900 mb-4">Platform</h4>
                         <ul className="space-y-2 text-sm text-slate-500">
-                            <li><button onClick={()=>setActiveTab('analyze')} className="hover:text-blue-600">Contract Audit</button></li>
-                            <li><button onClick={()=>setActiveTab('create')} className="hover:text-blue-600">Legal Drafting</button></li>
+                            <li><button onClick={()=>{setActiveTab('analyze'); scrollToTop()}} className="hover:text-blue-600">Contract Audit</button></li>
+                            <li><button onClick={()=>{setActiveTab('create'); scrollToTop()}} className="hover:text-blue-600">Legal Drafting</button></li>
                         </ul>
                     </div>
                     <div className="text-left">
                         <h4 className="font-bold text-slate-900 mb-4">Company</h4>
                         <ul className="space-y-2 text-sm text-slate-500">
-                            <li><button onClick={() => setShowStory(true)} className="hover:text-blue-600 font-bold flex items-center gap-1"><BookOpen className="w-3 h-3"/> Our Story</button></li>
-                            <li><a href="#" className="hover:text-blue-600">Privacy Policy</a></li>
+                            <li><button onClick={() => {setShowStory(true); scrollToTop()}} className="hover:text-blue-600 font-bold flex items-center gap-1"><BookOpen className="w-3 h-3"/> Our Story</button></li>
+                            <li><button onClick={() => {setShowContact(true); scrollToTop()}} className="hover:text-blue-600 font-bold flex items-center gap-1"><Mail className="w-3 h-3"/> Contact Us</button></li>
                             <li><a href={PRICING.GLOBAL.PAY_LINK} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-pink-600 font-bold hover:text-pink-700 mt-2"><Heart className="w-4 h-4 fill-current"/> Support Us</a></li>
                         </ul>
                     </div>
@@ -649,6 +650,17 @@ function App() {
                 </div>
             </div>
         </footer>
+      )}
+
+      {/* --- BACK TO TOP BUTTON --- */}
+      {showScrollTop && (
+          <button 
+            onClick={scrollToTop} 
+            className="fixed bottom-8 right-8 w-14 h-14 bg-slate-900 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-600 transition-all z-50 animate-in fade-in slide-in-from-bottom-4"
+            title="Back to Top"
+          >
+              <ArrowUp className="w-6 h-6"/>
+          </button>
       )}
 
       {/* --- AUTH MODAL --- */}
@@ -671,8 +683,33 @@ function App() {
                           </>
                       )}
                       {authView === "otp" && <input type="text" placeholder="Enter OTP" className="w-full p-4 bg-slate-50 rounded-xl text-center text-2xl tracking-[0.5em] font-black outline-none border border-slate-200" value={otpInput} onChange={e => setOtpInput(e.target.value)}/>}
-                      <button className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg bg-gradient-to-r ${THEME.primary} hover:scale-[1.02] transition-all`}>{authView === "login" ? "Login" : authView === "signup" ? "Get ₹100 Free" : "Verify"}</button>
+                      <button className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg bg-gradient-to-r ${THEME.primary} hover:scale-[1.02] transition-all`}>{authView === "login" ? "Login" : authView === "signup" ? `Get ${config.symbol}${config.bonus} Free` : "Verify"}</button>
                   </form>
+              </div>
+          </div>
+      )}
+
+      {/* --- CONTACT US MODAL --- */}
+      {showContact && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+              <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full relative border border-white/50">
+                  <button onClick={() => setShowContact(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><X className="w-6 h-6"/></button>
+                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6"><MessageSquare className="w-8 h-8"/></div>
+                  <h2 className="text-2xl font-black text-slate-900 mb-2 text-center">Contact Unilex</h2>
+                  <p className="text-center text-slate-500 text-sm mb-6">We'd love to hear from you. Expect a reply within 24 hours.</p>
+                  
+                  <form onSubmit={handleContactSubmit} className="space-y-4">
+                      <input type="text" placeholder="Your Name" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})}/>
+                      <input type="email" placeholder="Email Address" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})}/>
+                      <input type="tel" placeholder="Phone Number" className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium" value={contactForm.phone} onChange={e => setContactForm({...contactForm, phone: e.target.value})}/>
+                      <textarea placeholder="How can we help?" required className="w-full p-4 bg-slate-50 rounded-xl outline-none border border-slate-200 focus:border-blue-500 transition-all font-medium h-32 resize-none" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
+                      <button className={`w-full py-4 rounded-xl text-white font-bold text-lg shadow-lg bg-gradient-to-r ${THEME.primary} hover:scale-[1.02] transition-all`}>Send Message</button>
+                  </form>
+                  
+                  <div className="mt-6 pt-6 border-t border-slate-100 flex justify-center gap-6 text-slate-400">
+                      <a href="#" className="hover:text-blue-600 transition-colors"><Mail className="w-5 h-5"/></a>
+                      <a href="#" className="hover:text-blue-600 transition-colors"><PhoneIcon className="w-5 h-5"/></a>
+                  </div>
               </div>
           </div>
       )}
@@ -686,13 +723,12 @@ function App() {
                   <div className="w-20 h-20 bg-gradient-to-br from-amber-100 to-yellow-100 text-yellow-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner animate-pulse"><Coins className="w-10 h-10"/></div>
                   
                   <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Current Balance</h3>
-                  <h2 className="text-4xl font-black text-slate-900 mb-8">{isIndia ? `₹${walletBalance}` : `$0.00`}</h2>
+                  <h2 className="text-4xl font-black text-slate-900 mb-8">{config.symbol}{walletBalance}</h2>
                   
                   <div className="space-y-3">
-                      <a href={isIndia ? PRICING.INDIA.RECHARGE_LINK : PRICING.GLOBAL.PAY_LINK} target="_blank" rel="noreferrer" className="block w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-xl transition-all hover:scale-[1.02]">
-                          {isIndia ? "Recharge ₹100" : "Add Payment Method"}
+                      <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-xl transition-all hover:scale-[1.02]">
+                          {isIndia ? "Recharge ₹100" : `Add ${config.symbol}${config.currency === "INR" ? 100 : 50}`}
                       </a>
-                      {/* Verification Input hidden until clicked, for simplicity showing logic here */}
                       <input type="text" placeholder="Transaction ID (After Payment)" className="w-full p-4 bg-slate-50 rounded-xl border border-slate-200 outline-none text-center text-sm font-mono focus:border-green-500 transition-all" value={transactionId} onChange={e => setTransactionId(e.target.value)}/>
                       <button onClick={handlePaymentVerify} className="w-full py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 shadow-lg transition-all">Verify Payment</button>
                       
