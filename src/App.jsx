@@ -38,26 +38,6 @@ const REGIONAL_CONFIG = {
         subs: { monthly: 25, halfYearly: 125, yearly: 200 },
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     },
-    "Canada": { 
-        code: "ca", currency: "CAD", symbol: "C$", cost: 4.50, bonus: 70, 
-        subs: { monthly: 39, halfYearly: 199, yearly: 349 },
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
-    "Australia": { 
-        code: "au", currency: "AUD", symbol: "A$", cost: 5.00, bonus: 75, 
-        subs: { monthly: 45, halfYearly: 220, yearly: 399 },
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
-    "Germany": { 
-        code: "de", currency: "EUR", symbol: "€", cost: 3.00, bonus: 45, 
-        subs: { monthly: 29, halfYearly: 149, yearly: 249 },
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
-    "United Arab Emirates": { 
-        code: "ae", currency: "AED", symbol: "AED", cost: 12.00, bonus: 180, 
-        subs: { monthly: 110, halfYearly: 550, yearly: 999 },
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
     "Global": { 
         code: "gl", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
         subs: { monthly: 29, halfYearly: 149, yearly: 249 },
@@ -65,7 +45,6 @@ const REGIONAL_CONFIG = {
     }
 };
 
-// --- 2. LOCALIZED DOCUMENT INTELLIGENCE ---
 const LOCALIZED_DOCS = {
     "India": ["Affidavit / Undertaking", "Rent Agreement", "Sale Deed", "Freelance Agreement", "Employment Letter", "Partnership Deed", "Legal Notice", "Power of Attorney", "MoU"],
     "United States": ["Independent Contractor Agreement", "Consulting Agreement", "NDA", "Employment Letter", "Lease Agreement", "LLC Operating Agreement", "Privacy Policy", "Cease & Desist"],
@@ -85,7 +64,6 @@ class ErrorBoundary extends Component {
                     <div className="bg-white p-8 rounded-3xl shadow-xl border border-red-100 max-w-md">
                         <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4"/>
                         <h2 className="text-2xl font-black text-slate-900 mb-2">System Interrupted</h2>
-                        <p className="text-slate-500 mb-6">A critical component encountered an issue. We have logged this event.</p>
                         <button onClick={() => window.location.reload()} className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold mt-6 flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4"/> Reload Interface</button>
                     </div>
                 </div>
@@ -326,7 +304,7 @@ function AppContent() {
         } else { extractedText = "Image Scan"; }
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-        const result = await model.generateContent(`Legal Expert for ${jurisdiction}. Analyze risks, compliance issues, and multi-party obligations in this document. JSON Output: [{title, risk, advice}]. Text: ${extractedText.substring(0, 5000)}`);
+        const result = await model.generateContent(`Legal Expert for ${jurisdiction}. Analyze risks, compliance issues, and multi-party obligations in this document (Agreement, Undertaking, or Contract). JSON Output: [{title, risk, advice}]. Text: ${extractedText.substring(0, 5000)}`);
         setRisks(JSON.parse(result.response.text().replace(/```json|```/g, '').trim()));
         historyService.saveDocument({ type: "analysis", fileName: file.name, country: jurisdiction, createdAt: new Date().toISOString() });
     } catch (err) { 
@@ -368,13 +346,13 @@ function AppContent() {
 
       {/* VIEW SWITCHING */}
       {showStory ? (
-          <div className="max-w-4xl mx-auto px-6 py-20 animate-in fade-in">
+          <div className="max-w-4xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-8">
               <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
               <div className="text-center mb-16"><h1 className="text-6xl font-black text-slate-900 mb-6 tracking-tight">The Unilex Vision</h1><p className="text-2xl text-slate-500 font-medium">Why we built the world's most essential legal brain.</p></div>
               <div className="prose prose-lg prose-slate mx-auto"><p className="text-xl leading-relaxed mb-8">For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms.</p><div className="my-12 p-8 bg-blue-50 rounded-3xl border border-blue-100"><h3 className="text-2xl font-bold text-blue-900 mb-4 flex items-center gap-2"><Globe className="w-6 h-6"/> Uni + Lex</h3><p className="text-blue-800"><strong>Uni</strong>versal Access + <strong>Lex</strong> (Law). We combined military-grade encryption with state-of-the-art Generative AI.</p></div></div>
           </div>
       ) : showContact ? (
-          <div className="max-w-xl mx-auto px-6 py-20 animate-in fade-in">
+          <div className="max-w-xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-8">
               <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
               <div className="bg-white p-8 rounded-[2rem] shadow-2xl relative border border-white/50">
                   <div className="text-center mb-6"><div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><MessageSquare className="w-8 h-8"/></div><h2 className="text-2xl font-black text-slate-900">Contact Us</h2></div>
@@ -388,7 +366,7 @@ function AppContent() {
           </div>
       ) : (
         /* MAIN DASHBOARD */
-        <main className="max-w-6xl mx-auto px-4 mt-12 text-center animate-in fade-in">
+        <main className="max-w-6xl mx-auto px-4 mt-12 text-center animate-in fade-in duration-700">
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight leading-tight">Universal Legal Intelligence.<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Unified & Essential.</span></h1>
             <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
                 Expert analysis for <strong>Agreements, Government Forms, and Multi-Party Contracts</strong>. 
@@ -468,6 +446,7 @@ function AppContent() {
                     <div className="text-left">
                         <h4 className="font-bold text-slate-900 mb-4">Platform</h4>
                         <ul className="space-y-2 text-sm text-slate-500">
+                            {/* FIXED BUTTON TEXT HERE */}
                             <li><button onClick={()=>{setActiveTab('analyze'); scrollToTop()}} className="hover:text-blue-600">Document Audit</button></li>
                             <li><button onClick={()=>{setActiveTab('create'); scrollToTop()}} className="hover:text-blue-600">Legal Drafting</button></li>
                         </ul>
@@ -499,23 +478,29 @@ function AppContent() {
                   <button onClick={() => setShowAuthModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><X className="w-6 h-6"/></button>
                   <h2 className="text-2xl font-black text-slate-900 mb-6">{authView === "login" ? "Welcome" : "Create Account"}</h2>
                   <form onSubmit={handleAuthSubmit} className="space-y-4">
-                      {authView === "signup" && <input type="text" placeholder="Name" required className="w-full p-4 rounded-xl border focus:border-blue-500" onChange={e => setAuthForm({...authForm, name: e.target.value})}/>}
-                      {authView !== "otp" && <><input type="email" placeholder="Email" required className="w-full p-4 rounded-xl border focus:border-blue-500" onChange={e => setAuthForm({...authForm, email: e.target.value})}/><input type="password" placeholder="Password" required className="w-full p-4 rounded-xl border focus:border-blue-500" onChange={e => setAuthForm({...authForm, password: e.target.value})}/></>}
-                      {authView === "otp" && <input type="text" placeholder="OTP" className="w-full p-4 rounded-xl border text-center text-2xl focus:border-blue-500" onChange={e => setOtpInput(e.target.value)}/>}
+                      {authView === "signup" && <input type="text" placeholder="Name" required className="w-full p-4 rounded-xl border focus:border-blue-500 font-medium" onChange={e => setAuthForm({...authForm, name: e.target.value})}/>}
+                      {authView !== "otp" && <><input type="email" placeholder="Email" required className="w-full p-4 rounded-xl border focus:border-blue-500 font-medium" onChange={e => setAuthForm({...authForm, email: e.target.value})}/><input type="password" placeholder="Password" required className="w-full p-4 rounded-xl border focus:border-blue-500 font-medium" onChange={e => setAuthForm({...authForm, password: e.target.value})}/></>}
+                      {authView === "otp" && <input type="text" placeholder="OTP" className="w-full p-4 rounded-xl border text-center text-2xl focus:border-blue-500 font-medium" onChange={e => setOtpInput(e.target.value)}/>}
                       <button className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 hover:scale-[1.02] transition-transform">{authView === "login" ? "Login" : authView === "signup" ? `Get ${config.symbol}${config.bonus} Free` : "Verify"}</button>
                   </form>
               </div>
           </div>
       )}
 
-      {/* PREMIUM WALLET MODAL */}
+      {/* PREMIUM WALLET MODAL (COMPACT & FIXED) */}
       {showWalletModal && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in zoom-in-95 duration-200">
-              <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full text-center relative border border-white/50 max-h-[90vh] overflow-y-auto custom-scrollbar">
-                  <button onClick={() => setShowWalletModal(false)} className="sticky top-0 right-0 float-right text-slate-400 hover:text-slate-600 bg-white rounded-full p-1 shadow-sm z-50"><X className="w-5 h-5"/></button>
+              <div className="bg-white p-6 rounded-[2rem] shadow-2xl max-w-md w-full text-center relative border border-white/50 max-h-[85vh] overflow-y-auto custom-scrollbar">
+                  {/* FIXED CLOSE BUTTON */}
+                  <button 
+                    onClick={() => setShowWalletModal(false)} 
+                    className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 bg-white rounded-full p-1 shadow-md z-50 transition-colors"
+                  >
+                    <X className="w-5 h-5"/>
+                  </button>
                   
                   {/* TABS SWITCHER */}
-                  <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
+                  <div className="flex bg-slate-100 p-1 rounded-xl mb-6 mt-2">
                       <button onClick={() => setWalletTab('topup')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${walletTab === 'topup' ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}>Top Up</button>
                       <button onClick={() => setWalletTab('premium')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${walletTab === 'premium' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}`}>Premium</button>
                   </div>
@@ -526,39 +511,40 @@ function AppContent() {
                           <h3 className="text-xs font-bold text-slate-400 uppercase mb-1">Available Balance</h3>
                           <h2 className="text-3xl font-black mb-6">{config.symbol}{walletBalance}</h2>
                           <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-3 bg-slate-900 text-white rounded-xl font-bold mb-4 hover:scale-[1.02] transition-transform">Add Credits</a>
-                          <p className="text-[10px] text-slate-400 mb-6">Pay as you go. No expiration.</p>
+                          <p className="text-[10px] text-slate-400 mb-4">Pay as you go. No expiration.</p>
                       </>
                   ) : (
                       <>
-                          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4"><Crown className="w-8 h-8"/></div>
+                          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><Crown className="w-6 h-6"/></div>
                           <h3 className="text-xs font-bold text-slate-400 uppercase mb-1">Unilex Pro</h3>
-                          <h2 className="text-3xl font-black mb-2">{config.symbol}{config.subs.monthly}<span className="text-sm text-slate-400 font-medium">/mo</span></h2>
-                          <p className="text-slate-500 mb-6 text-xs">Unlimited Audits & Drafting. Priority Support.</p>
+                          <h2 className="text-2xl font-black mb-2">{config.symbol}{config.subs.monthly}<span className="text-sm text-slate-400 font-medium">/mo</span></h2>
                           
-                          <div className="space-y-2 mb-6">
-                              <div className="p-3 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500 bg-blue-50/50">
+                          {/* COMPACT PRICING LIST */}
+                          <div className="space-y-2 mb-4">
+                              <div className="p-2 border rounded-lg flex justify-between items-center cursor-pointer hover:border-blue-500 bg-blue-50/50">
                                   <span className="font-bold text-xs">Monthly</span>
                                   <span className="font-black text-sm">{config.symbol}{config.subs.monthly}</span>
                               </div>
-                              <div className="p-3 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500">
-                                  <span className="font-bold text-xs">6 Months <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-1">SAVE 15%</span></span>
+                              <div className="p-2 border rounded-lg flex justify-between items-center cursor-pointer hover:border-blue-500">
+                                  <span className="font-bold text-xs">6 Months <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded ml-1">SAVE 15%</span></span>
                                   <span className="font-black text-sm">{config.symbol}{config.subs.halfYearly}</span>
                               </div>
-                              <div className="p-3 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500">
-                                  <span className="font-bold text-xs">Yearly <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-1">BEST VALUE</span></span>
+                              <div className="p-2 border rounded-lg flex justify-between items-center cursor-pointer hover:border-blue-500">
+                                  <span className="font-bold text-xs">Yearly <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded ml-1">BEST</span></span>
                                   <span className="font-black text-sm">{config.symbol}{config.subs.yearly}</span>
                               </div>
                           </div>
                           
                           <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:scale-[1.02] transition-transform">Subscribe Now</a>
-                          <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600 mt-4 block w-full">Maybe Later</button>
+                          {/* EXIT BUTTON FOR PREMIUM TAB */}
+                          <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600 mt-3 mb-2">Maybe Later</button>
                       </>
                   )}
 
-                  <div className="mt-4 pt-4 border-t border-slate-100">
+                  <div className="mt-2 pt-4 border-t border-slate-100">
                       <input type="text" placeholder="Transaction ID (Verification)" className="w-full p-2.5 rounded-lg border text-center text-xs font-mono mb-2" onChange={e => setTransactionId(e.target.value)}/>
                       <button onClick={handlePaymentVerify} className="text-xs font-bold text-green-600 hover:underline block w-full mb-2">Verify Transaction Manually</button>
-                      <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600">Complete Later</button>
+                      {walletTab === 'topup' && <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600">Complete Later</button>}
                   </div>
               </div>
           </div>
