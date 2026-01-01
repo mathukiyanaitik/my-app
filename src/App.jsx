@@ -38,6 +38,26 @@ const REGIONAL_CONFIG = {
         subs: { monthly: 25, halfYearly: 125, yearly: 200 },
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     },
+    "Canada": { 
+        code: "ca", currency: "CAD", symbol: "C$", cost: 4.50, bonus: 70, 
+        subs: { monthly: 39, halfYearly: 199, yearly: 349 },
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "Australia": { 
+        code: "au", currency: "AUD", symbol: "A$", cost: 5.00, bonus: 75, 
+        subs: { monthly: 45, halfYearly: 220, yearly: 399 },
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "Germany": { 
+        code: "de", currency: "EUR", symbol: "€", cost: 3.00, bonus: 45, 
+        subs: { monthly: 29, halfYearly: 149, yearly: 249 },
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "United Arab Emirates": { 
+        code: "ae", currency: "AED", symbol: "AED", cost: 12.00, bonus: 180, 
+        subs: { monthly: 110, halfYearly: 550, yearly: 999 },
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
     "Global": { 
         code: "gl", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
         subs: { monthly: 29, halfYearly: 149, yearly: 249 },
@@ -65,6 +85,7 @@ class ErrorBoundary extends Component {
                     <div className="bg-white p-8 rounded-3xl shadow-xl border border-red-100 max-w-md">
                         <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4"/>
                         <h2 className="text-2xl font-black text-slate-900 mb-2">System Interrupted</h2>
+                        <p className="text-slate-500 mb-6">A critical component encountered an issue. We have logged this event.</p>
                         <button onClick={() => window.location.reload()} className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold mt-6 flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4"/> Reload Interface</button>
                     </div>
                 </div>
@@ -321,7 +342,7 @@ function AppContent() {
 
       {/* NAVBAR */}
       <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 shadow-sm px-4 md:px-8 py-4 flex justify-between items-center transition-all">
-        <div onClick={goHome} className="flex items-center gap-3 cursor-pointer group">
+        <div onClick={goHome} className="flex items-center gap-3 cursor-pointer group hover:opacity-80 transition-opacity">
             <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-900 flex items-center justify-center text-white shadow-lg">
                 {!imgError ? <img src={logoImg} className="w-full h-full object-cover" onError={()=>setImgError(true)}/> : <Globe className="w-6 h-6"/>}
             </div>
@@ -348,28 +369,28 @@ function AppContent() {
       {/* VIEW SWITCHING */}
       {showStory ? (
           <div className="max-w-4xl mx-auto px-6 py-20 animate-in fade-in">
-              <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
-              <div className="text-center mb-16"><h1 className="text-6xl font-black text-slate-900 mb-6">The Unilex Vision</h1><p className="text-2xl text-slate-500 font-medium">Why we built the world's most essential legal brain.</p></div>
-              <div className="prose prose-lg prose-slate mx-auto"><p className="text-xl leading-relaxed mb-8">For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms.</p><div className="my-12 p-8 bg-blue-50 rounded-3xl border border-blue-100"><h3 className="text-2xl font-bold text-blue-900 mb-4 flex items-center gap-2"><Globe className="w-6 h-6"/> Uni + Lex</h3><p className="text-blue-800"><strong>Uni</strong>versal Access + <strong>Lex</strong> (Law). We combined military-grade encryption with AI.</p></div></div>
+              <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
+              <div className="text-center mb-16"><h1 className="text-6xl font-black text-slate-900 mb-6 tracking-tight">The Unilex Vision</h1><p className="text-2xl text-slate-500 font-medium">Why we built the world's most essential legal brain.</p></div>
+              <div className="prose prose-lg prose-slate mx-auto"><p className="text-xl leading-relaxed mb-8">For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms.</p><div className="my-12 p-8 bg-blue-50 rounded-3xl border border-blue-100"><h3 className="text-2xl font-bold text-blue-900 mb-4 flex items-center gap-2"><Globe className="w-6 h-6"/> Uni + Lex</h3><p className="text-blue-800"><strong>Uni</strong>versal Access + <strong>Lex</strong> (Law). We combined military-grade encryption with state-of-the-art Generative AI.</p></div></div>
           </div>
       ) : showContact ? (
           <div className="max-w-xl mx-auto px-6 py-20 animate-in fade-in">
-              <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
+              <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
               <div className="bg-white p-8 rounded-[2rem] shadow-2xl relative border border-white/50">
                   <div className="text-center mb-6"><div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><MessageSquare className="w-8 h-8"/></div><h2 className="text-2xl font-black text-slate-900">Contact Us</h2></div>
                   <form onSubmit={handleContactSubmit} className="space-y-4">
                       <input type="text" placeholder="Name" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500" value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})}/>
                       <input type="email" placeholder="Email" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})}/>
-                      <textarea placeholder="Message" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500 h-32" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
-                      <button className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 hover:scale-[1.02] transition-transform">Send</button>
+                      <textarea placeholder="Message" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500 h-32 resize-none" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
+                      <button className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 hover:scale-[1.02] transition-transform">Send Message</button>
                   </form>
               </div>
           </div>
       ) : (
         /* MAIN DASHBOARD */
         <main className="max-w-6xl mx-auto px-4 mt-12 text-center animate-in fade-in">
-            <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6">Universal Legal Intelligence.<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Unified & Essential.</span></h1>
-            <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-medium">
+            <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight leading-tight">Universal Legal Intelligence.<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Unified & Essential.</span></h1>
+            <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-medium leading-relaxed">
                 Expert analysis for <strong>Agreements, Government Forms, and Multi-Party Contracts</strong>. 
                 Instantly audit and draft compliant with <span className="font-bold text-slate-900">{jurisdiction} Law</span>.
             </p>
@@ -415,18 +436,18 @@ function AppContent() {
                 <div className="bg-white/60 backdrop-blur-sm rounded-[22px] p-12 max-w-3xl mx-auto text-left border border-white shadow-2xl">
                     <div className="space-y-8">
                         <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Type</label><CustomDropdown options={getLocalizedDocList()} value={docType} onChange={setDocType}/></div>
-                        <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Scenario</label><textarea value={userScenario} onChange={e => setUserScenario(e.target.value)} placeholder="Describe details..." className="w-full p-5 bg-white rounded-xl border h-40"></textarea></div>
+                        <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Scenario</label><textarea value={userScenario} onChange={e => setUserScenario(e.target.value)} placeholder="Describe details..." className="w-full p-5 bg-white rounded-xl border h-40 font-medium"></textarea></div>
                         <button onClick={handleCreateDoc} disabled={loading} className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 flex justify-center gap-2 shadow-lg hover:scale-[1.01] transition-transform">{loading ? <Loader2 className="animate-spin"/> : <Sparkles className="w-5 h-5"/>} Generate ({isPremium ? "Free" : `${config.symbol}${config.cost}`})</button>
                     </div>
                     {generatedDoc && (
-                        <div className="mt-10 pt-8 border-t"><div className="flex justify-between mb-4"><h3 className="font-bold">Draft Ready</h3><button onClick={() => downloadDocx(generatedDoc, "Draft.docx")} className="text-blue-600 font-bold flex gap-2"><Download className="w-4 h-4"/> Download</button></div><div className="p-6 bg-white rounded-xl border h-80 overflow-y-auto whitespace-pre-wrap text-xs">{generatedDoc}</div></div>
+                        <div className="mt-10 pt-8 border-t border-slate-200 animate-in fade-in slide-in-from-bottom-4"><div className="flex justify-between mb-4"><h3 className="font-bold text-lg">Draft Ready</h3><button onClick={() => downloadDocx(generatedDoc, "Draft.docx")} className="text-blue-600 font-bold flex gap-2"><Download className="w-4 h-4"/> Download</button></div><div className="p-6 bg-white rounded-xl border h-80 overflow-y-auto whitespace-pre-wrap text-xs">{generatedDoc}</div></div>
                     )}
                 </div>
             )}
 
             {activeTab === "transactions" && (
                 <div className="max-w-4xl mx-auto">
-                    {transactions.length === 0 ? <div className="p-12 text-slate-400 bg-white rounded-2xl border border-dashed"><Receipt className="w-12 h-12 mx-auto mb-3 opacity-20"/>No history.</div> : <div className="grid gap-4">{transactions.map((txn, i) => <div key={i} className="bg-white p-6 rounded-2xl shadow-sm flex justify-between items-center"><div className="text-left"><p className="font-bold text-lg">{txn.description}</p><span className="text-xs text-slate-500">{txn.date} • {txn.id}</span></div><span className="text-xl font-black">{txn.symbol}{txn.amount}</span></div>)}</div>}
+                    {transactions.length === 0 ? <div className="p-12 text-slate-400 bg-white rounded-2xl border border-dashed"><Receipt className="w-12 h-12 mx-auto mb-3 opacity-20"/>No history.</div> : <div className="grid gap-4">{transactions.map((txn, i) => <div key={i} className="bg-white p-6 rounded-2xl shadow-sm flex justify-between items-center hover:shadow-md transition-all"><div className="text-left"><p className="font-bold text-lg">{txn.description}</p><span className="text-xs text-slate-500">{txn.date} • {txn.id}</span></div><span className="text-xl font-black">{txn.symbol}{txn.amount}</span></div>)}</div>}
                 </div>
             )}
         </main>
@@ -490,8 +511,8 @@ function AppContent() {
       {/* PREMIUM WALLET MODAL */}
       {showWalletModal && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in zoom-in-95 duration-200">
-              <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full text-center relative border border-white/50">
-                  <button onClick={() => setShowWalletModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-white rounded-full p-1 shadow-sm z-10"><X className="w-5 h-5"/></button>
+              <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full text-center relative border border-white/50 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                  <button onClick={() => setShowWalletModal(false)} className="sticky top-0 right-0 float-right text-slate-400 hover:text-slate-600 bg-white rounded-full p-1 shadow-sm z-50"><X className="w-5 h-5"/></button>
                   
                   {/* TABS SWITCHER */}
                   <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
@@ -537,7 +558,7 @@ function AppContent() {
                   <div className="mt-4 pt-4 border-t border-slate-100">
                       <input type="text" placeholder="Transaction ID (Verification)" className="w-full p-2.5 rounded-lg border text-center text-xs font-mono mb-2" onChange={e => setTransactionId(e.target.value)}/>
                       <button onClick={handlePaymentVerify} className="text-xs font-bold text-green-600 hover:underline block w-full mb-2">Verify Transaction Manually</button>
-                      {walletTab === 'topup' && <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600">Complete Later</button>}
+                      <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600">Complete Later</button>
                   </div>
               </div>
           </div>
