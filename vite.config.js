@@ -5,7 +5,16 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   build: {
-    sourcemap: false, // CRITICAL: This hides your code structure
-    minify: 'terser', // CRITICAL: This scrambles variable names
+    // This hides the code structure from "Inspect Element"
+    sourcemap: false, 
+    // This uses the package you just installed to scramble variable names
+    minify: 'terser', 
+    terserOptions: {
+        compress: {
+            // This removes console.log statements from the production build
+            drop_console: true, 
+            drop_debugger: true,
+        },
+    },
   }
 })
