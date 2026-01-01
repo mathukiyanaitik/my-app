@@ -157,12 +157,12 @@ function AppContent() {
   const [userLocation, setUserLocation] = useState("Global"); 
   const [jurisdiction, setJurisdiction] = useState("United States"); 
   const [walletBalance, setWalletBalance] = useState(0);
-  const [isPremium, setIsPremium] = useState(false); // New Premium State
+  const [isPremium, setIsPremium] = useState(false); 
 
   const [showStory, setShowStory] = useState(false); 
   const [showContact, setShowContact] = useState(false); 
   const [showWalletModal, setShowWalletModal] = useState(false);
-  const [walletTab, setWalletTab] = useState("topup"); // 'topup' or 'premium'
+  const [walletTab, setWalletTab] = useState("topup"); 
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const [user, setUser] = useState(null);
@@ -179,13 +179,12 @@ function AppContent() {
   const [transactions, setTransactions] = useState([]); 
   const [documentHistory, setDocumentHistory] = useState([]);
   const [risks, setRisks] = useState(null);
-  const [docType, setDocType] = useState(""); // Will set default in useEffect
+  const [docType, setDocType] = useState(""); 
   const [userScenario, setUserScenario] = useState("");
   const [generatedDoc, setGeneratedDoc] = useState("");
 
   const getConfig = () => REGIONAL_CONFIG[userLocation] || REGIONAL_CONFIG["Global"];
   
-  // Get localized docs based on selected jurisdiction
   const getLocalizedDocList = () => LOCALIZED_DOCS[jurisdiction] || LOCALIZED_DOCS["Global"];
 
   useEffect(() => {
@@ -197,7 +196,6 @@ function AppContent() {
         setUser(currentUser);
         const savedBalance = localStorage.getItem(`wallet_${currentUser.email}`);
         setWalletBalance(savedBalance ? parseFloat(savedBalance) : 0);
-        // Check Premium status (Mock logic)
         const premiumStatus = localStorage.getItem(`premium_${currentUser.email}`);
         setIsPremium(premiumStatus === "true");
         
@@ -225,7 +223,6 @@ function AppContent() {
           if (data && data.country_name) {
               const detectedName = Object.keys(REGIONAL_CONFIG).includes(data.country_name) ? data.country_name : "Global";
               setUserLocation(detectedName);
-              // Auto-select jurisdiction if valid
               if (Object.keys(REGIONAL_CONFIG).includes(data.country_name)) setJurisdiction(data.country_name);
           }
       } catch (e) { console.warn("Location detection failed"); }
@@ -236,7 +233,7 @@ function AppContent() {
   const handleContactSubmit = (e) => { e.preventDefault(); alert("Message sent! We will contact you at " + contactForm.email); setContactForm({name:"",email:"",phone:"",message:""}); setShowContact(false); };
 
   const processPaymentCheck = () => {
-      if (isPremium) return true; // Premium users bypass cost
+      if (isPremium) return true; 
       const config = getConfig();
       if (walletBalance >= config.cost) {
           const newBalance = walletBalance - config.cost;
@@ -244,7 +241,7 @@ function AppContent() {
           localStorage.setItem(`wallet_${user.email}`, newBalance);
           return true;
       } else {
-          setWalletTab("topup"); // Ensure topup tab is open
+          setWalletTab("topup"); 
           setShowWalletModal(true); 
           return false;
       }
@@ -255,7 +252,6 @@ function AppContent() {
       const config = getConfig();
       
       if (walletTab === "topup") {
-          // Normal Recharge
           const rechargeAmount = config.currency === "INR" ? 100 : 50; 
           const newBalance = walletBalance + rechargeAmount;
           setWalletBalance(parseFloat(newBalance.toFixed(2)));
@@ -268,7 +264,6 @@ function AppContent() {
           if(user) localStorage.setItem(`txns_${user.email}`, JSON.stringify(updatedTxns));
 
       } else {
-          // Premium Subscription
           setIsPremium(true);
           if(user) localStorage.setItem(`premium_${user.email}`, "true");
           alert("🎉 Congratulations! You are now a Unilex Pro member.");
@@ -520,7 +515,7 @@ function AppContent() {
       {showWalletModal && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in zoom-in-95 duration-200">
               <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full text-center relative border border-white/50">
-                  <button onClick={() => setShowWalletModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><X className="w-6 h-6"/></button>
+                  <button onClick={() => setShowWalletModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-white rounded-full p-1 shadow-sm"><X className="w-5 h-5"/></button>
                   
                   {/* TABS SWITCHER */}
                   <div className="flex bg-slate-100 p-1 rounded-xl mb-8">
@@ -564,7 +559,8 @@ function AppContent() {
 
                   <div className="mt-6 pt-6 border-t border-slate-100">
                       <input type="text" placeholder="Transaction ID (Verification)" className="w-full p-3 rounded-lg border text-center text-xs font-mono mb-3" onChange={e => setTransactionId(e.target.value)}/>
-                      <button onClick={handlePaymentVerify} className="text-xs font-bold text-green-600 hover:underline">Verify Transaction Manually</button>
+                      <button onClick={handlePaymentVerify} className="text-xs font-bold text-green-600 hover:underline block w-full mb-3">Verify Transaction Manually</button>
+                      <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600">Complete Later</button>
                   </div>
               </div>
           </div>
