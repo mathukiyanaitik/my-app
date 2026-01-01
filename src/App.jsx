@@ -8,12 +8,11 @@ import {
     Zap, Heart, CheckCircle2, Building2, ChevronRight, Receipt, 
     ArrowUpRight, ChevronDown, Check, BookOpen, MessageSquare, 
     ArrowUp, Mail, Phone, Wallet, LogOut, X, Globe, Coins, RefreshCw,
-    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles, Crown, CreditCard, History
+    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles, Crown, CreditCard, History, Scale
 } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
-// FIX: Wildcard import to prevent 'Document' naming conflict
 import * as docx from "docx"; 
 import { saveAs } from "file-saver";
 import { authService } from './utils/auth';
@@ -22,7 +21,7 @@ import { historyService } from './utils/history';
 // 🔒 SECURE MODE
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// --- 1. DYNAMIC GLOBAL CONFIGURATION (Pricing, Currency & Subscriptions) ---
+// --- 1. DYNAMIC GLOBAL CONFIGURATION ---
 const REGIONAL_CONFIG = {
     "India": { 
         code: "in", currency: "INR", symbol: "₹", cost: 15, bonus: 100, 
@@ -67,15 +66,14 @@ const REGIONAL_CONFIG = {
 };
 
 // --- 2. LOCALIZED DOCUMENT INTELLIGENCE ---
-// Maps jurisdiction to specific local document names
 const LOCALIZED_DOCS = {
-    "India": ["Rent Agreement (11 Months)", "Sale Deed", "Employment Letter", "NDA (Non-Disclosure)", "Partnership Deed", "GST Invoice Format", "Legal Notice", "Will & Testament", "Power of Attorney"],
+    "India": ["Rent Agreement (11 Months)", "Sale Deed", "Employment Letter", "NDA (Non-Disclosure)", "Partnership Deed", "GST Invoice Format", "Legal Notice", "Affidavit / Undertaking", "Power of Attorney"],
     "United States": ["NDA (Non-Disclosure)", "Independent Contractor Agreement", "Employment Offer Letter", "Residential Lease", "LLC Operating Agreement", "SaaS Terms of Service", "Privacy Policy (GDPR/CCPA)", "Cease & Desist"],
     "United Kingdom": ["AST (Tenancy Agreement)", "Employment Contract", "NDA", "Shareholders Agreement", "Privacy Policy", "Service Agreement"],
     "United Arab Emirates": ["Tenancy Contract (Ejari Compliant)", "Employment Contract (MOL)", "Memorandum of Association (MoA)", "NDA", "Power of Attorney", "Commercial Lease"],
-    "Germany": ["Arbeitsvertrag (Employment)", "Mietvertrag (Rental)", "Geschäftsführervertrag", "NDA (Geheimhaltungsvereinbarung)", "Datenschutzerklärung (GDPR)"],
+    "Germany": ["Arbeitsvertrag (Employment)", "Mietvertrag (Rental)", "Geschäftsführervertrag", "NDA", "Datenschutzerklärung (GDPR)"],
     "Australia": ["Residential Tenancy Agreement", "Employment Contract", "Contractor Agreement", "NDA", "Privacy Policy"],
-    "Global": ["Non-Disclosure Agreement (NDA)", "Service Agreement", "Employment Contract", "Rental Agreement", "Privacy Policy", "SaaS License"]
+    "Global": ["Non-Disclosure Agreement (NDA)", "Service Agreement", "Employment Contract", "Rental Agreement", "Privacy Policy", "SaaS License", "Memorandum of Understanding"]
 };
 
 // --- 3. ERROR BOUNDARY ---
@@ -184,7 +182,6 @@ function AppContent() {
   const [generatedDoc, setGeneratedDoc] = useState("");
 
   const getConfig = () => REGIONAL_CONFIG[userLocation] || REGIONAL_CONFIG["Global"];
-  
   const getLocalizedDocList = () => LOCALIZED_DOCS[jurisdiction] || LOCALIZED_DOCS["Global"];
 
   useEffect(() => {
@@ -210,7 +207,6 @@ function AppContent() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Update default doc type when jurisdiction changes
   useEffect(() => {
       const docs = getLocalizedDocList();
       if(docs.length > 0) setDocType(docs[0]);
@@ -332,7 +328,7 @@ function AppContent() {
         } else { extractedText = "Image Scan"; }
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
-        const result = await model.generateContent(`Legal Expert for ${jurisdiction}. Analyze risks. JSON Output: [{title, risk, advice}]. Text: ${extractedText.substring(0, 5000)}`);
+        const result = await model.generateContent(`Legal Expert for ${jurisdiction}. Analyze risks, compliance issues, and multi-party obligations in this text. JSON Output: [{title, risk, advice}]. Text: ${extractedText.substring(0, 5000)}`);
         setRisks(JSON.parse(result.response.text().replace(/```json|```/g, '').trim()));
         historyService.saveDocument({ type: "analysis", fileName: file.name, country: jurisdiction, createdAt: new Date().toISOString() });
     } catch (err) { 
@@ -396,7 +392,10 @@ function AppContent() {
         /* MAIN DASHBOARD */
         <main className="max-w-6xl mx-auto px-4 mt-12 text-center animate-in fade-in">
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6">Universal Legal Intelligence.<br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Unified & Essential.</span></h1>
-            <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-medium">We are experts in global legal frameworks. Instant Contract Audits and Drafting compliant with <span className="font-bold text-slate-900">{jurisdiction} Law</span>.</p>
+            <p className="text-lg md:text-xl text-slate-500 mb-10 max-w-2xl mx-auto font-medium">
+                Expert analysis for any legal document, agreement, or government form. 
+                Instantly audit and draft compliant with <span className="font-bold text-slate-900">{jurisdiction} Law</span>.
+            </p>
             
             <div className="sticky top-24 z-40 flex justify-center mb-12">
                 <div className="p-1.5 rounded-full bg-white/80 backdrop-blur-md shadow-lg border border-slate-200/60 inline-flex gap-1">
@@ -412,8 +411,8 @@ function AppContent() {
                         <label className="cursor-pointer group">
                             <input type="file" onChange={handleFileUpload} className="hidden"/>
                             <div className="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center mb-6 shadow-lg border border-slate-100 group-hover:scale-110 transition-transform"><Upload className="w-10 h-10 text-blue-600"/></div>
-                            <h3 className="text-2xl font-bold text-slate-900 mb-2">Drop Contract</h3>
-                            <p className="text-slate-500 mb-6">PDF, DOCX • {isPremium ? "Free for Pro" : `${config.symbol}${config.cost} / Scan`}</p>
+                            <h3 className="text-2xl font-bold text-slate-900 mb-2">Drop Any Legal Document</h3>
+                            <p className="text-slate-500 mb-6">Agreements, Contracts, Gov Forms • PDF, DOCX</p>
                             
                             <div className="flex justify-center gap-4 mb-6">
                                 <div className="flex flex-col items-center gap-1 text-slate-400"><FileText className="w-6 h-6"/><span className="text-[10px] font-bold">PDF</span></div>
