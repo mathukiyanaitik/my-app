@@ -8,12 +8,12 @@ import {
     Zap, Heart, CheckCircle2, Building2, ChevronRight, Receipt, 
     ArrowUpRight, ChevronDown, Check, BookOpen, MessageSquare, 
     ArrowUp, Mail, Phone, Wallet, LogOut, X, Globe, Coins, RefreshCw,
-    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles // FIXED: Added Sparkles
+    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles, Crown, CreditCard, History
 } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
 import mammoth from 'mammoth';
-// FIX: Wildcard import to prevent 'Document' naming conflict forever
+// FIX: Wildcard import to prevent 'Document' naming conflict
 import * as docx from "docx"; 
 import { saveAs } from "file-saver";
 import { authService } from './utils/auth';
@@ -22,29 +22,63 @@ import { historyService } from './utils/history';
 // 🔒 SECURE MODE
 const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
-// --- DYNAMIC GLOBAL CONFIGURATION ---
+// --- 1. DYNAMIC GLOBAL CONFIGURATION (Pricing, Currency & Subscriptions) ---
 const REGIONAL_CONFIG = {
     "India": { 
         code: "in", currency: "INR", symbol: "₹", cost: 15, bonus: 100, 
+        subs: { monthly: 999, halfYearly: 4999, yearly: 8999 },
         payLink: "https://razorpay.me/@YOUR_INDIAN_LINK" 
     },
     "United States": { 
         code: "us", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
+        subs: { monthly: 29, halfYearly: 149, yearly: 249 },
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     },
     "United Kingdom": { 
         code: "gb", currency: "GBP", symbol: "£", cost: 2.50, bonus: 40, 
+        subs: { monthly: 25, halfYearly: 125, yearly: 200 },
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "Canada": { 
+        code: "ca", currency: "CAD", symbol: "C$", cost: 4.50, bonus: 70, 
+        subs: { monthly: 39, halfYearly: 199, yearly: 349 },
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "Australia": { 
+        code: "au", currency: "AUD", symbol: "A$", cost: 5.00, bonus: 75, 
+        subs: { monthly: 45, halfYearly: 220, yearly: 399 },
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "Germany": { 
+        code: "de", currency: "EUR", symbol: "€", cost: 3.00, bonus: 45, 
+        subs: { monthly: 29, halfYearly: 149, yearly: 249 },
+        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
+    },
+    "United Arab Emirates": { 
+        code: "ae", currency: "AED", symbol: "AED", cost: 12.00, bonus: 180, 
+        subs: { monthly: 110, halfYearly: 550, yearly: 999 },
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     },
     "Global": { 
         code: "gl", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
+        subs: { monthly: 29, halfYearly: 149, yearly: 249 },
         payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
     }
 };
 
-const docTypes = ["Non-Disclosure Agreement (NDA)", "Employment Contract", "Freelance Agreement", "Rental Agreement", "SaaS License", "Privacy Policy", "Last Will", "Partnership Deed", "Legal Notice"];
+// --- 2. LOCALIZED DOCUMENT INTELLIGENCE ---
+// Maps jurisdiction to specific local document names
+const LOCALIZED_DOCS = {
+    "India": ["Rent Agreement (11 Months)", "Sale Deed", "Employment Letter", "NDA (Non-Disclosure)", "Partnership Deed", "GST Invoice Format", "Legal Notice", "Will & Testament", "Power of Attorney"],
+    "United States": ["NDA (Non-Disclosure)", "Independent Contractor Agreement", "Employment Offer Letter", "Residential Lease", "LLC Operating Agreement", "SaaS Terms of Service", "Privacy Policy (GDPR/CCPA)", "Cease & Desist"],
+    "United Kingdom": ["AST (Tenancy Agreement)", "Employment Contract", "NDA", "Shareholders Agreement", "Privacy Policy", "Service Agreement"],
+    "United Arab Emirates": ["Tenancy Contract (Ejari Compliant)", "Employment Contract (MOL)", "Memorandum of Association (MoA)", "NDA", "Power of Attorney", "Commercial Lease"],
+    "Germany": ["Arbeitsvertrag (Employment)", "Mietvertrag (Rental)", "Geschäftsführervertrag", "NDA (Geheimhaltungsvereinbarung)", "Datenschutzerklärung (GDPR)"],
+    "Australia": ["Residential Tenancy Agreement", "Employment Contract", "Contractor Agreement", "NDA", "Privacy Policy"],
+    "Global": ["Non-Disclosure Agreement (NDA)", "Service Agreement", "Employment Contract", "Rental Agreement", "Privacy Policy", "SaaS License"]
+};
 
-// --- 1. GLOBAL ERROR BOUNDARY (THE SAFETY NET) ---
+// --- 3. ERROR BOUNDARY ---
 class ErrorBoundary extends Component {
     constructor(props) { super(props); this.state = { hasError: false }; }
     static getDerivedStateFromError(error) { return { hasError: true }; }
@@ -54,12 +88,9 @@ class ErrorBoundary extends Component {
             return (
                 <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 text-center p-6">
                     <div className="bg-white p-8 rounded-3xl shadow-xl border border-red-100 max-w-md">
-                        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4"><AlertTriangle className="w-8 h-8"/></div>
+                        <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4"/>
                         <h2 className="text-2xl font-black text-slate-900 mb-2">System Interrupted</h2>
-                        <p className="text-slate-500 mb-6">A critical component encountered an issue. We have logged this event.</p>
-                        <button onClick={() => window.location.reload()} className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center gap-2">
-                            <RefreshCw className="w-4 h-4"/> Reload Interface
-                        </button>
+                        <button onClick={() => window.location.reload()} className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold mt-6 flex items-center justify-center gap-2"><RefreshCw className="w-4 h-4"/> Reload Interface</button>
                     </div>
                 </div>
             );
@@ -68,11 +99,10 @@ class ErrorBoundary extends Component {
     }
 }
 
-// --- 2. PREMIUM CUSTOM CURSOR ---
+// --- 4. CUSTOM CURSOR ---
 const CustomCursor = () => {
     const cursorRef = useRef(null);
     const cursorDotRef = useRef(null);
-
     useEffect(() => {
         const moveCursor = (e) => {
             if (cursorRef.current && cursorDotRef.current) {
@@ -80,43 +110,15 @@ const CustomCursor = () => {
                 cursorDotRef.current.style.transform = `translate3d(${e.clientX - 4}px, ${e.clientY - 4}px, 0)`;
             }
         };
-        const clickDown = () => {
-            if(cursorRef.current) cursorRef.current.style.transform += " scale(0.8)";
-            if(cursorRef.current) cursorRef.current.style.backgroundColor = "rgba(37, 99, 235, 0.2)";
-        };
-        const clickUp = () => {
-            if(cursorRef.current) cursorRef.current.style.transform = cursorRef.current.style.transform.replace(" scale(0.8)", "");
-            if(cursorRef.current) cursorRef.current.style.backgroundColor = "transparent";
-        };
-
-        window.addEventListener('mousemove', moveCursor);
-        window.addEventListener('mousedown', clickDown);
-        window.addEventListener('mouseup', clickUp);
-
-        return () => {
-            window.removeEventListener('mousemove', moveCursor);
-            window.removeEventListener('mousedown', clickDown);
-            window.removeEventListener('mouseup', clickUp);
-        };
+        const clickDown = () => { if(cursorRef.current) cursorRef.current.style.transform += " scale(0.8)"; };
+        const clickUp = () => { if(cursorRef.current) cursorRef.current.style.transform = cursorRef.current.style.transform.replace(" scale(0.8)", ""); };
+        window.addEventListener('mousemove', moveCursor); window.addEventListener('mousedown', clickDown); window.addEventListener('mouseup', clickUp);
+        return () => { window.removeEventListener('mousemove', moveCursor); window.removeEventListener('mousedown', clickDown); window.removeEventListener('mouseup', clickUp); };
     }, []);
-
-    return (
-        <div className="pointer-events-none fixed inset-0 z-[9999] hidden md:block">
-            <div 
-                ref={cursorRef} 
-                className="absolute w-8 h-8 border-2 border-blue-600 rounded-full transition-transform duration-100 ease-out will-change-transform"
-                style={{ top: 0, left: 0 }}
-            />
-            <div 
-                ref={cursorDotRef}
-                className="absolute w-2 h-2 bg-blue-600 rounded-full will-change-transform"
-                style={{ top: 0, left: 0 }}
-            />
-        </div>
-    );
+    return <div className="pointer-events-none fixed inset-0 z-[9999] hidden md:block"><div ref={cursorRef} className="absolute w-8 h-8 border-2 border-blue-600 rounded-full transition-transform duration-100 ease-out"/><div ref={cursorDotRef} className="absolute w-2 h-2 bg-blue-600 rounded-full"/></div>;
 };
 
-// --- 3. CUSTOM DROPDOWN COMPONENT ---
+// --- 5. CUSTOM DROPDOWN ---
 const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
@@ -125,7 +127,6 @@ const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
     return (
         <div className="relative" ref={dropdownRef}>
             <button onClick={() => setIsOpen(!isOpen)} className="flex items-center justify-between w-full px-4 py-3 bg-white border border-slate-200 rounded-xl hover:border-blue-400 transition-all shadow-sm">
@@ -135,24 +136,19 @@ const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
                 </div>
                 <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? "rotate-180" : ""}`}/>
             </button>
-            {isOpen && (
-                <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
-                    {options.map((opt, idx) => (
-                        <div key={idx} onClick={() => { onChange(opt); setIsOpen(false); }} className={`px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-slate-50 ${opt === value ? "bg-blue-50" : ""}`}>
-                            {type === "country" && REGIONAL_CONFIG[opt] && <img src={`https://flagcdn.com/w40/${REGIONAL_CONFIG[opt].code}.png`} className="w-5 h-3.5 rounded shadow-sm" alt="flag"/>}
-                            <span className={`flex-1 text-sm ${opt === value ? "font-bold text-blue-600" : "font-medium text-slate-700"}`}>{opt}</span>
-                            {opt === value && <Check className="w-4 h-4 text-blue-600"/>}
-                        </div>
-                    ))}
+            {isOpen && <div className="absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-2xl max-h-60 overflow-y-auto">{options.map((opt, idx) => (
+                <div key={idx} onClick={() => { onChange(opt); setIsOpen(false); }} className={`px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-slate-50 ${opt === value ? "bg-blue-50" : ""}`}>
+                    {type === "country" && REGIONAL_CONFIG[opt] && <img src={`https://flagcdn.com/w40/${REGIONAL_CONFIG[opt].code}.png`} className="w-5 h-3.5 rounded shadow-sm" alt="flag"/>}
+                    <span className={`flex-1 text-sm ${opt === value ? "font-bold text-blue-600" : "font-medium text-slate-700"}`}>{opt}</span>
+                    {opt === value && <Check className="w-4 h-4 text-blue-600"/>}
                 </div>
-            )}
+            ))}</div>}
         </div>
     );
 };
 
-// --- 4. MAIN APP LOGIC ---
+// --- 6. APP CONTENT ---
 function AppContent() {
-  // --- STATE ---
   const [activeTab, setActiveTab] = useState("analyze"); 
   const [loading, setLoading] = useState(false);
   const [imgError, setImgError] = useState(false); 
@@ -161,10 +157,12 @@ function AppContent() {
   const [userLocation, setUserLocation] = useState("Global"); 
   const [jurisdiction, setJurisdiction] = useState("United States"); 
   const [walletBalance, setWalletBalance] = useState(0);
+  const [isPremium, setIsPremium] = useState(false); // New Premium State
 
   const [showStory, setShowStory] = useState(false); 
   const [showContact, setShowContact] = useState(false); 
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [walletTab, setWalletTab] = useState("topup"); // 'topup' or 'premium'
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const [user, setUser] = useState(null);
@@ -179,18 +177,19 @@ function AppContent() {
   const [billingInfo, setBillingInfo] = useState({ address: "", city: "", state: "", zip: "" });
   
   const [transactions, setTransactions] = useState([]); 
+  const [documentHistory, setDocumentHistory] = useState([]);
   const [risks, setRisks] = useState(null);
-  const [docType, setDocType] = useState("Non-Disclosure Agreement (NDA)"); 
+  const [docType, setDocType] = useState(""); // Will set default in useEffect
   const [userScenario, setUserScenario] = useState("");
   const [generatedDoc, setGeneratedDoc] = useState("");
 
   const getConfig = () => REGIONAL_CONFIG[userLocation] || REGIONAL_CONFIG["Global"];
+  
+  // Get localized docs based on selected jurisdiction
+  const getLocalizedDocList = () => LOCALIZED_DOCS[jurisdiction] || LOCALIZED_DOCS["Global"];
 
   useEffect(() => {
-    const setWorker = async () => {
-        try { pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`; } 
-        catch (e) { console.error("PDF Worker Error", e); }
-    };
+    const setWorker = async () => { try { pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`; } catch (e) {} };
     setWorker();
 
     const currentUser = authService.getCurrentUser();
@@ -198,8 +197,13 @@ function AppContent() {
         setUser(currentUser);
         const savedBalance = localStorage.getItem(`wallet_${currentUser.email}`);
         setWalletBalance(savedBalance ? parseFloat(savedBalance) : 0);
+        // Check Premium status (Mock logic)
+        const premiumStatus = localStorage.getItem(`premium_${currentUser.email}`);
+        setIsPremium(premiumStatus === "true");
+        
         const savedTxns = localStorage.getItem(`txns_${currentUser.email}`);
         setTransactions(savedTxns ? JSON.parse(savedTxns) : []);
+        try { setDocumentHistory(historyService.getDocuments()); } catch(e) {}
     }
 
     detectUserLocation();
@@ -208,6 +212,12 @@ function AppContent() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Update default doc type when jurisdiction changes
+  useEffect(() => {
+      const docs = getLocalizedDocList();
+      if(docs.length > 0) setDocType(docs[0]);
+  }, [jurisdiction]);
+
   const detectUserLocation = async () => {
       try {
           const response = await fetch('https://ipapi.co/json/');
@@ -215,21 +225,18 @@ function AppContent() {
           if (data && data.country_name) {
               const detectedName = Object.keys(REGIONAL_CONFIG).includes(data.country_name) ? data.country_name : "Global";
               setUserLocation(detectedName);
-              if (REGIONAL_CONFIG[data.country_name]) setJurisdiction(data.country_name);
+              // Auto-select jurisdiction if valid
+              if (Object.keys(REGIONAL_CONFIG).includes(data.country_name)) setJurisdiction(data.country_name);
           }
       } catch (e) { console.warn("Location detection failed"); }
   };
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const goHome = () => { scrollToTop(); setShowStory(false); setShowContact(false); setActiveTab("analyze"); };
-  const handleContactSubmit = (e) => { 
-      e.preventDefault(); 
-      alert("Message sent! We will contact you at " + contactForm.email); 
-      setContactForm({name:"",email:"",phone:"",message:""}); 
-      setShowContact(false); 
-  };
+  const handleContactSubmit = (e) => { e.preventDefault(); alert("Message sent! We will contact you at " + contactForm.email); setContactForm({name:"",email:"",phone:"",message:""}); setShowContact(false); };
 
   const processPaymentCheck = () => {
+      if (isPremium) return true; // Premium users bypass cost
       const config = getConfig();
       if (walletBalance >= config.cost) {
           const newBalance = walletBalance - config.cost;
@@ -237,6 +244,7 @@ function AppContent() {
           localStorage.setItem(`wallet_${user.email}`, newBalance);
           return true;
       } else {
+          setWalletTab("topup"); // Ensure topup tab is open
           setShowWalletModal(true); 
           return false;
       }
@@ -245,26 +253,32 @@ function AppContent() {
   const handlePaymentVerify = () => {
       if (!transactionId) { alert("Please enter Transaction ID"); return; }
       const config = getConfig();
-      const rechargeAmount = config.currency === "INR" ? 100 : 50; 
-      const newBalance = walletBalance + rechargeAmount;
-      setWalletBalance(parseFloat(newBalance.toFixed(2)));
-      if(user) localStorage.setItem(`wallet_${user.email}`, newBalance);
       
-      alert(`${config.symbol}${rechargeAmount} Added to Wallet!`);
-      const newTxn = { 
-          id: Math.floor(Math.random() * 10000000000).toString(), 
-          date: new Date().toLocaleDateString('en-GB'), 
-          amount: rechargeAmount, 
-          currency: config.currency, 
-          symbol: config.symbol, 
-          description: "Wallet Recharge", 
-          txnId: transactionId, 
-          billing: { ...billingInfo } 
-      };
+      if (walletTab === "topup") {
+          // Normal Recharge
+          const rechargeAmount = config.currency === "INR" ? 100 : 50; 
+          const newBalance = walletBalance + rechargeAmount;
+          setWalletBalance(parseFloat(newBalance.toFixed(2)));
+          if(user) localStorage.setItem(`wallet_${user.email}`, newBalance);
+          alert(`${config.symbol}${rechargeAmount} Added to Wallet!`);
+          
+          const newTxn = { id: Math.floor(Math.random() * 10000000000).toString(), date: new Date().toLocaleDateString('en-GB'), amount: rechargeAmount, currency: config.currency, symbol: config.symbol, description: "Wallet Recharge", txnId: transactionId, billing: { ...billingInfo } };
+          const updatedTxns = [newTxn, ...transactions];
+          setTransactions(updatedTxns);
+          if(user) localStorage.setItem(`txns_${user.email}`, JSON.stringify(updatedTxns));
+
+      } else {
+          // Premium Subscription
+          setIsPremium(true);
+          if(user) localStorage.setItem(`premium_${user.email}`, "true");
+          alert("🎉 Congratulations! You are now a Unilex Pro member.");
+          
+          const newTxn = { id: Math.floor(Math.random() * 10000000000).toString(), date: new Date().toLocaleDateString('en-GB'), amount: config.subs.monthly, currency: config.currency, symbol: config.symbol, description: "Pro Subscription (Monthly)", txnId: transactionId, billing: { ...billingInfo } };
+          const updatedTxns = [newTxn, ...transactions];
+          setTransactions(updatedTxns);
+          if(user) localStorage.setItem(`txns_${user.email}`, JSON.stringify(updatedTxns));
+      }
       
-      const updatedTxns = [newTxn, ...transactions];
-      setTransactions(updatedTxns);
-      if(user) localStorage.setItem(`txns_${user.email}`, JSON.stringify(updatedTxns));
       setShowWalletModal(false); setTransactionId("");
   };
 
@@ -284,7 +298,7 @@ function AppContent() {
     }
   };
 
-  const handleLogout = () => { authService.logout(); setUser(null); setWalletBalance(0); setTransactions([]); };
+  const handleLogout = () => { authService.logout(); setUser(null); setWalletBalance(0); setIsPremium(false); setTransactions([]); };
 
   const handleCreateDoc = async () => {
       if (!user) { setAuthView("signup"); setShowAuthModal(true); return; }
@@ -297,20 +311,15 @@ function AppContent() {
           const result = await model.generateContent(prompt);
           setGeneratedDoc(result.response.text());
           historyService.saveDocument({ type: "generated", docType, country: jurisdiction, createdAt: new Date().toISOString() });
-      } catch (e) { alert("Error generating draft. Please try again."); console.error(e); } 
+      } catch (e) { alert("Error generating draft. Please try again."); } 
       finally { setLoading(false); }
   };
 
   const downloadDocx = (text, name) => {
       try {
-          const doc = new docx.Document({
-              sections: [{ children: text.split('\n').map(l => new docx.Paragraph({ children: [new docx.TextRun(l)] })) }]
-          });
+          const doc = new docx.Document({ sections: [{ children: text.split('\n').map(l => new docx.Paragraph({ children: [new docx.TextRun(l)] })) }] });
           docx.Packer.toBlob(doc).then(b => saveAs(b, name));
-      } catch(e) {
-          console.error("DOCX Generation Failed:", e);
-          alert("Download failed. Please copy text manually.");
-      }
+      } catch(e) { alert("Download failed. Please copy text manually."); }
   };
 
   const handleFileUpload = async (e) => {
@@ -332,7 +341,7 @@ function AppContent() {
         setRisks(JSON.parse(result.response.text().replace(/```json|```/g, '').trim()));
         historyService.saveDocument({ type: "analysis", fileName: file.name, country: jurisdiction, createdAt: new Date().toISOString() });
     } catch (err) { 
-        alert("Scan Failed. Credits Refunded."); const c = getConfig(); setWalletBalance(prev => prev + c.cost); 
+        alert("Scan Failed. Credits Refunded."); if(!isPremium) { const c = getConfig(); setWalletBalance(prev => prev + c.cost); }
     } finally { setLoading(false); e.target.value = null; }
   };
 
@@ -340,7 +349,6 @@ function AppContent() {
 
   return (
     <div className="min-h-screen font-sans text-slate-900 bg-[#F0F4F8] selection:bg-blue-100 pb-24 relative cursor-default">
-      {/* 3D Cursor */}
       <CustomCursor />
 
       {/* NAVBAR */}
@@ -358,8 +366,10 @@ function AppContent() {
             <div className="hidden md:block w-48"><CustomDropdown options={Object.keys(REGIONAL_CONFIG).filter(k => k !== "Global")} value={jurisdiction} onChange={setJurisdiction} type="country" /></div>
             {user ? (
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setShowWalletModal(true)} className="flex items-center gap-0 bg-slate-900 text-white pl-4 pr-1 py-1 rounded-full shadow-lg border border-slate-700 active:scale-95 transition-transform">
-                        <Wallet className="w-4 h-4 text-yellow-400 mr-2"/><span className="font-bold text-sm mr-3">{config.symbol}{walletBalance}</span><div className="bg-green-500 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">+</div>
+                    <button onClick={() => {setWalletTab('topup'); setShowWalletModal(true)}} className="flex items-center gap-0 bg-slate-900 text-white pl-4 pr-1 py-1 rounded-full shadow-lg border border-slate-700 active:scale-95 transition-transform">
+                        {isPremium ? <Crown className="w-4 h-4 text-yellow-400 mr-2"/> : <Wallet className="w-4 h-4 text-yellow-400 mr-2"/>}
+                        <span className="font-bold text-sm mr-3">{isPremium ? "PRO" : `${config.symbol}${walletBalance}`}</span>
+                        <div className="bg-green-500 w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold">+</div>
                     </button>
                     <button onClick={handleLogout} className="p-2.5 rounded-full hover:bg-red-50 text-slate-400 hover:text-red-500"><LogOut className="w-5 h-5"/></button>
                 </div>
@@ -372,7 +382,7 @@ function AppContent() {
           <div className="max-w-4xl mx-auto px-6 py-20 animate-in fade-in">
               <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
               <div className="text-center mb-16"><h1 className="text-6xl font-black text-slate-900 mb-6">The Unilex Vision</h1><p className="text-2xl text-slate-500 font-medium">Why we built the world's most essential legal brain.</p></div>
-              <div className="prose prose-lg prose-slate mx-auto"><p className="text-xl leading-relaxed mb-8">For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms.</p><div className="my-12 p-8 bg-blue-50 rounded-3xl border border-blue-100"><h3 className="text-2xl font-bold text-blue-900 mb-4 flex items-center gap-2"><Globe className="w-6 h-6"/> Uni + Lex</h3><p className="text-blue-800"><strong>Uni</strong>versal Access + <strong>Lex</strong> (Law). We combined military-grade encryption with AI.</p></div></div>
+              <div className="prose prose-lg prose-slate mx-auto"><p className="text-xl leading-relaxed mb-8">For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms.</p></div>
           </div>
       ) : showContact ? (
           <div className="max-w-xl mx-auto px-6 py-20 animate-in fade-in">
@@ -385,7 +395,6 @@ function AppContent() {
                       <textarea placeholder="Message" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500 h-32" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
                       <button className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 hover:scale-[1.02] transition-transform">Send</button>
                   </form>
-                  <div className="mt-6 pt-6 border-t flex justify-center gap-6 text-slate-400"><div className="flex items-center gap-2"><Mail className="w-5 h-5"/> support@unilexai.com</div></div>
               </div>
           </div>
       ) : (
@@ -409,17 +418,19 @@ function AppContent() {
                             <input type="file" onChange={handleFileUpload} className="hidden"/>
                             <div className="w-24 h-24 mx-auto bg-white rounded-full flex items-center justify-center mb-6 shadow-lg border border-slate-100 group-hover:scale-110 transition-transform"><Upload className="w-10 h-10 text-blue-600"/></div>
                             <h3 className="text-2xl font-bold text-slate-900 mb-2">Drop Contract</h3>
-                            <p className="text-slate-500 mb-6">PDF, DOCX • {config.symbol}{config.cost} / Scan</p>
+                            <p className="text-slate-500 mb-6">PDF, DOCX • {isPremium ? "Free for Pro" : `${config.symbol}${config.cost} / Scan`}</p>
                             
-                            {/* FILE TYPE ICONS */}
                             <div className="flex justify-center gap-4 mb-6">
                                 <div className="flex flex-col items-center gap-1 text-slate-400"><FileText className="w-6 h-6"/><span className="text-[10px] font-bold">PDF</span></div>
                                 <div className="flex flex-col items-center gap-1 text-slate-400"><FileType className="w-6 h-6"/><span className="text-[10px] font-bold">DOCX</span></div>
                                 <div className="flex flex-col items-center gap-1 text-slate-400"><ImageIcon className="w-6 h-6"/><span className="text-[10px] font-bold">IMG</span></div>
                             </div>
 
-                            <div className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border group-hover:border-blue-300 transition-colors">
-                                <div className="text-left"><p className="text-[10px] font-bold text-slate-400 uppercase">Balance</p><p className={`text-lg font-black ${walletBalance > 0 ? "text-green-600" : "text-slate-900"}`}>{config.symbol}{walletBalance}</p></div>
+                            <div 
+                                onClick={(e) => { e.preventDefault(); setWalletTab('topup'); setShowWalletModal(true); }}
+                                className="inline-flex items-center gap-3 px-6 py-3 bg-white rounded-xl shadow-sm border group-hover:border-blue-300 transition-colors"
+                            >
+                                <div className="text-left"><p className="text-[10px] font-bold text-slate-400 uppercase">{isPremium ? "Plan" : "Balance"}</p><p className={`text-lg font-black ${walletBalance > 0 || isPremium ? "text-green-600" : "text-slate-900"}`}>{isPremium ? "UNLIMITED" : `${config.symbol}${walletBalance}`}</p></div>
                                 <div className="ml-2 w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><ArrowUpRight className="w-4 h-4 text-slate-400"/></div>
                             </div>
                         </label>
@@ -432,9 +443,9 @@ function AppContent() {
             {activeTab === "create" && (
                 <div className="bg-white/60 backdrop-blur-sm rounded-[22px] p-12 max-w-3xl mx-auto text-left border border-white shadow-2xl">
                     <div className="space-y-8">
-                        <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Type</label><CustomDropdown options={docTypes} value={docType} onChange={setDocType}/></div>
+                        <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Type</label><CustomDropdown options={getLocalizedDocList()} value={docType} onChange={setDocType}/></div>
                         <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Scenario</label><textarea value={userScenario} onChange={e => setUserScenario(e.target.value)} placeholder="Describe details..." className="w-full p-5 bg-white rounded-xl border h-40"></textarea></div>
-                        <button onClick={handleCreateDoc} disabled={loading} className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 flex justify-center gap-2 shadow-lg hover:scale-[1.01] transition-transform">{loading ? <Loader2 className="animate-spin"/> : <Sparkles className="w-5 h-5"/>} Generate ({config.symbol}{config.cost})</button>
+                        <button onClick={handleCreateDoc} disabled={loading} className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 flex justify-center gap-2 shadow-lg hover:scale-[1.01] transition-transform">{loading ? <Loader2 className="animate-spin"/> : <Sparkles className="w-5 h-5"/>} Generate ({isPremium ? "Free" : `${config.symbol}${config.cost}`})</button>
                     </div>
                     {generatedDoc && (
                         <div className="mt-10 pt-8 border-t"><div className="flex justify-between mb-4"><h3 className="font-bold">Draft Ready</h3><button onClick={() => downloadDocx(generatedDoc, "Draft.docx")} className="text-blue-600 font-bold flex gap-2"><Download className="w-4 h-4"/> Download</button></div><div className="p-6 bg-white rounded-xl border h-80 overflow-y-auto whitespace-pre-wrap text-xs">{generatedDoc}</div></div>
@@ -505,17 +516,56 @@ function AppContent() {
           </div>
       )}
 
-      {/* WALLET MODAL */}
+      {/* PREMIUM WALLET MODAL */}
       {showWalletModal && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in zoom-in-95 duration-200">
-              <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-sm w-full text-center relative border border-white/50">
+              <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full text-center relative border border-white/50">
                   <button onClick={() => setShowWalletModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><X className="w-6 h-6"/></button>
-                  <div className="w-20 h-20 bg-amber-100 text-yellow-600 rounded-3xl flex items-center justify-center mx-auto mb-6"><Coins className="w-10 h-10"/></div>
-                  <h3 className="text-sm font-bold text-slate-400 uppercase mb-1">Balance</h3>
-                  <h2 className="text-4xl font-black mb-8">{config.symbol}{walletBalance}</h2>
-                  <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-4 bg-blue-600 text-white rounded-xl font-bold mb-4 hover:scale-[1.02] transition-transform">Recharge {config.symbol}{config.currency === "INR" ? 100 : 50}</a>
-                  <input type="text" placeholder="Transaction ID" className="w-full p-4 rounded-xl border text-center mb-4 focus:border-green-500" onChange={e => setTransactionId(e.target.value)}/>
-                  <button onClick={handlePaymentVerify} className="w-full py-3 bg-green-500 text-white rounded-xl font-bold hover:scale-[1.02] transition-transform">Verify</button>
+                  
+                  {/* TABS SWITCHER */}
+                  <div className="flex bg-slate-100 p-1 rounded-xl mb-8">
+                      <button onClick={() => setWalletTab('topup')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${walletTab === 'topup' ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}>Top Up</button>
+                      <button onClick={() => setWalletTab('premium')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${walletTab === 'premium' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}`}>Premium Plan</button>
+                  </div>
+
+                  {walletTab === 'topup' ? (
+                      <>
+                          <div className="w-20 h-20 bg-amber-100 text-yellow-600 rounded-3xl flex items-center justify-center mx-auto mb-6"><Coins className="w-10 h-10"/></div>
+                          <h3 className="text-sm font-bold text-slate-400 uppercase mb-1">Available Balance</h3>
+                          <h2 className="text-4xl font-black mb-8">{config.symbol}{walletBalance}</h2>
+                          <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-4 bg-slate-900 text-white rounded-xl font-bold mb-4 hover:scale-[1.02] transition-transform">Add Credits</a>
+                          <p className="text-xs text-slate-400">Pay as you go. No expiration.</p>
+                      </>
+                  ) : (
+                      <>
+                          <div className="w-20 h-20 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-6"><Crown className="w-10 h-10"/></div>
+                          <h3 className="text-sm font-bold text-slate-400 uppercase mb-1">Unilex Pro</h3>
+                          <h2 className="text-4xl font-black mb-2">{config.symbol}{config.subs.monthly}<span className="text-lg text-slate-400 font-medium">/mo</span></h2>
+                          <p className="text-slate-500 mb-8 text-sm">Unlimited Audits & Drafting. Priority Support.</p>
+                          
+                          <div className="space-y-3 mb-6">
+                              <div className="p-4 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500 bg-blue-50/50">
+                                  <span className="font-bold text-sm">Monthly</span>
+                                  <span className="font-black">{config.symbol}{config.subs.monthly}</span>
+                              </div>
+                              <div className="p-4 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500">
+                                  <span className="font-bold text-sm">6 Months <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded ml-2">SAVE 15%</span></span>
+                                  <span className="font-black">{config.symbol}{config.subs.halfYearly}</span>
+                              </div>
+                              <div className="p-4 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500">
+                                  <span className="font-bold text-sm">Yearly <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded ml-2">BEST VALUE</span></span>
+                                  <span className="font-black">{config.symbol}{config.subs.yearly}</span>
+                              </div>
+                          </div>
+                          
+                          <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:scale-[1.02] transition-transform">Subscribe Now</a>
+                      </>
+                  )}
+
+                  <div className="mt-6 pt-6 border-t border-slate-100">
+                      <input type="text" placeholder="Transaction ID (Verification)" className="w-full p-3 rounded-lg border text-center text-xs font-mono mb-3" onChange={e => setTransactionId(e.target.value)}/>
+                      <button onClick={handlePaymentVerify} className="text-xs font-bold text-green-600 hover:underline">Verify Transaction Manually</button>
+                  </div>
               </div>
           </div>
       )}
