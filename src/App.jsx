@@ -8,7 +8,7 @@ import {
     Zap, Heart, CheckCircle2, Building2, ChevronRight, Receipt, 
     ArrowUpRight, ChevronDown, Check, BookOpen, MessageSquare, 
     ArrowUp, Mail, Phone, Wallet, LogOut, X, Globe, Coins, RefreshCw,
-    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles, Crown, CreditCard, History, Scale, Lock
+    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles, Crown, CreditCard, History, Scale, Lock, Lightbulb, Users, Target
 } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
@@ -23,28 +23,17 @@ const API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
 
 // --- 1. DYNAMIC GLOBAL CONFIGURATION ---
 const REGIONAL_CONFIG = {
-    "India": { 
-        code: "in", currency: "INR", symbol: "₹", cost: 15, bonus: 100, 
-        subs: { monthly: 999, halfYearly: 4999, yearly: 8999 },
-        payLink: "https://razorpay.me/@YOUR_INDIAN_LINK" 
-    },
-    "United States": { 
-        code: "us", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
-        subs: { monthly: 29, halfYearly: 149, yearly: 249 },
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
-    "United Kingdom": { 
-        code: "gb", currency: "GBP", symbol: "£", cost: 2.50, bonus: 40, 
-        subs: { monthly: 25, halfYearly: 125, yearly: 200 },
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    },
-    "Global": { 
-        code: "gl", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, 
-        subs: { monthly: 29, halfYearly: 149, yearly: 249 },
-        payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" 
-    }
+    "India": { code: "in", currency: "INR", symbol: "₹", cost: 15, bonus: 100, subs: { monthly: 999, halfYearly: 4999, yearly: 8999 }, payLink: "https://razorpay.me/@YOUR_INDIAN_LINK" },
+    "United States": { code: "us", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, subs: { monthly: 29, halfYearly: 149, yearly: 249 }, payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" },
+    "United Kingdom": { code: "gb", currency: "GBP", symbol: "£", cost: 2.50, bonus: 40, subs: { monthly: 25, halfYearly: 125, yearly: 200 }, payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" },
+    "Canada": { code: "ca", currency: "CAD", symbol: "C$", cost: 4.50, bonus: 70, subs: { monthly: 39, halfYearly: 199, yearly: 349 }, payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" },
+    "Australia": { code: "au", currency: "AUD", symbol: "A$", cost: 5.00, bonus: 75, subs: { monthly: 45, halfYearly: 220, yearly: 399 }, payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" },
+    "Germany": { code: "de", currency: "EUR", symbol: "€", cost: 3.00, bonus: 45, subs: { monthly: 29, halfYearly: 149, yearly: 249 }, payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" },
+    "United Arab Emirates": { code: "ae", currency: "AED", symbol: "AED", cost: 12.00, bonus: 180, subs: { monthly: 110, halfYearly: 550, yearly: 999 }, payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" },
+    "Global": { code: "gl", currency: "USD", symbol: "$", cost: 3.33, bonus: 50, subs: { monthly: 29, halfYearly: 149, yearly: 249 }, payLink: "https://razorpay.me/@YOUR_GLOBAL_LINK" }
 };
 
+// --- 2. LOCALIZED DOCUMENT INTELLIGENCE ---
 const LOCALIZED_DOCS = {
     "India": ["Affidavit / Undertaking", "Rent Agreement", "Sale Deed", "Freelance Agreement", "Employment Letter", "Partnership Deed", "Legal Notice", "Power of Attorney", "MoU"],
     "United States": ["Independent Contractor Agreement", "Consulting Agreement", "NDA", "Employment Letter", "Lease Agreement", "LLC Operating Agreement", "Privacy Policy", "Cease & Desist"],
@@ -133,8 +122,9 @@ function AppContent() {
   const [walletBalance, setWalletBalance] = useState(0);
   const [isPremium, setIsPremium] = useState(false); 
 
-  const [showStory, setShowStory] = useState(false); 
-  const [showContact, setShowContact] = useState(false); 
+  // VIEW STATE: dashboard | story | contact
+  const [currentView, setCurrentView] = useState("dashboard"); 
+  
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [walletTab, setWalletTab] = useState("topup"); 
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -201,8 +191,14 @@ function AppContent() {
   };
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-  const goHome = () => { scrollToTop(); setShowStory(false); setShowContact(false); setActiveTab("analyze"); };
-  const handleContactSubmit = (e) => { e.preventDefault(); alert("Message sent! We will contact you at " + contactForm.email); setContactForm({name:"",email:"",phone:"",message:""}); setShowContact(false); };
+  
+  const goHome = () => { 
+      scrollToTop(); 
+      setCurrentView("dashboard");
+      setActiveTab("analyze"); 
+  };
+
+  const handleContactSubmit = (e) => { e.preventDefault(); alert("Message sent! We will contact you at " + contactForm.email); setContactForm({name:"",email:"",phone:"",message:""}); setCurrentView("dashboard"); };
 
   const processPaymentCheck = () => {
       if (isPremium) return true; 
@@ -345,21 +341,64 @@ function AppContent() {
       </nav>
 
       {/* VIEW SWITCHING */}
-      {showStory ? (
+      {currentView === "story" ? (
+          /* STORY PAGE */
           <div className="max-w-4xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-8">
-              <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
-              <div className="text-center mb-16"><h1 className="text-6xl font-black text-slate-900 mb-6 tracking-tight">The Unilex Vision</h1><p className="text-2xl text-slate-500 font-medium">Why we built the world's most essential legal brain.</p></div>
-              <div className="prose prose-lg prose-slate mx-auto"><p className="text-xl leading-relaxed mb-8">For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms.</p><div className="my-12 p-8 bg-blue-50 rounded-3xl border border-blue-100"><h3 className="text-2xl font-bold text-blue-900 mb-4 flex items-center gap-2"><Globe className="w-6 h-6"/> Uni + Lex</h3><p className="text-blue-800"><strong>Uni</strong>versal Access + <strong>Lex</strong> (Law). We combined military-grade encryption with state-of-the-art Generative AI.</p></div></div>
+              <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back to Tool</button>
+              
+              <div className="text-center mb-16">
+                  <h1 className="text-6xl font-black text-slate-900 mb-6 tracking-tight">The Unilex Vision</h1>
+                  <p className="text-2xl text-slate-500 font-medium">Why we built the world's most essential legal brain.</p>
+              </div>
+
+              <div className="prose prose-lg prose-slate mx-auto">
+                  <p className="text-xl leading-relaxed mb-8">
+                      For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms. 
+                      If you couldn't afford $500 an hour, you were left guessing.
+                  </p>
+                  
+                  <div className="grid md:grid-cols-3 gap-6 my-12">
+                      <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100 text-center">
+                          <Lightbulb className="w-10 h-10 text-yellow-500 mx-auto mb-4"/>
+                          <h3 className="font-bold text-lg mb-2">The Spark</h3>
+                          <p className="text-sm text-slate-500">Why should justice be a luxury? We wanted to democratize access.</p>
+                      </div>
+                      <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100 text-center">
+                          <Globe className="w-10 h-10 text-blue-500 mx-auto mb-4"/>
+                          <h3 className="font-bold text-lg mb-2">The Name</h3>
+                          <p className="text-sm text-slate-500"><strong>Uni</strong>versal + <strong>Lex</strong> (Law). Law for everyone, everywhere.</p>
+                      </div>
+                      <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100 text-center">
+                          <Target className="w-10 h-10 text-red-500 mx-auto mb-4"/>
+                          <h3 className="font-bold text-lg mb-2">The Mission</h3>
+                          <p className="text-sm text-slate-500">To make legal drafting and auditing as simple as sending an email.</p>
+                      </div>
+                  </div>
+
+                  <p className="text-xl leading-relaxed">
+                      Unilex AI isn't just a tool. It's a movement to democratize justice. 
+                      Whether you are a freelancer in Bangalore signing your first contract, or a startup in Texas hiring your first employee, 
+                      Unilex ensures you never sign blindly again.
+                  </p>
+              </div>
           </div>
-      ) : showContact ? (
+      ) : currentView === "contact" ? (
+          /* CONTACT PAGE */
           <div className="max-w-xl mx-auto px-6 py-20 animate-in fade-in slide-in-from-bottom-8">
-              <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
+              <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold transition-colors"><ChevronRight className="w-4 h-4 rotate-180"/> Back to Tool</button>
+              
               <div className="bg-white p-8 rounded-[2rem] shadow-2xl relative border border-white/50">
-                  <div className="text-center mb-6"><div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><MessageSquare className="w-8 h-8"/></div><h2 className="text-2xl font-black text-slate-900">Contact Us</h2></div>
+                  <div className="text-center mb-6">
+                      <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><MessageSquare className="w-8 h-8"/></div>
+                      <h2 className="text-2xl font-black text-slate-900">Contact Us</h2>
+                      <p className="text-slate-500 mt-2">Have questions? We're here to help.</p>
+                  </div>
+                  
                   <form onSubmit={handleContactSubmit} className="space-y-4">
-                      <input type="text" placeholder="Name" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500" value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})}/>
-                      <input type="email" placeholder="Email" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})}/>
-                      <textarea placeholder="Message" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500 h-32 resize-none" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
+                      <input type="text" placeholder="Your Name" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500 transition-all font-medium" value={contactForm.name} onChange={e => setContactForm({...contactForm, name: e.target.value})}/>
+                      <input type="email" placeholder="Email Address" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500 transition-all font-medium" value={contactForm.email} onChange={e => setContactForm({...contactForm, email: e.target.value})}/>
+                      <input type="tel" placeholder="Phone Number" className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500 transition-all font-medium" value={contactForm.phone} onChange={e => setContactForm({...contactForm, phone: e.target.value})}/>
+                      <textarea placeholder="How can we help?" required className="w-full p-4 bg-slate-50 rounded-xl border focus:border-blue-500 h-32 resize-none transition-all font-medium" value={contactForm.message} onChange={e => setContactForm({...contactForm, message: e.target.value})}></textarea>
                       <button className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 hover:scale-[1.02] transition-transform">Send Message</button>
                   </form>
               </div>
@@ -432,8 +471,7 @@ function AppContent() {
       )}
 
       {/* FOOTER */}
-      {!showStory && !showContact && (
-        <footer className="mt-24 border-t border-slate-200 bg-white">
+      <footer className="mt-24 border-t border-slate-200 bg-white">
             <div className="max-w-7xl mx-auto px-6 py-12">
                 <div className="grid md:grid-cols-4 gap-8 mb-12">
                     <div className="col-span-1 md:col-span-2 text-left">
@@ -446,16 +484,15 @@ function AppContent() {
                     <div className="text-left">
                         <h4 className="font-bold text-slate-900 mb-4">Platform</h4>
                         <ul className="space-y-2 text-sm text-slate-500">
-                            {/* FIXED BUTTON TEXT HERE */}
-                            <li><button onClick={()=>{setActiveTab('analyze'); scrollToTop()}} className="hover:text-blue-600">Document Audit</button></li>
-                            <li><button onClick={()=>{setActiveTab('create'); scrollToTop()}} className="hover:text-blue-600">Legal Drafting</button></li>
+                            <li><button onClick={()=>{setCurrentView("dashboard"); setActiveTab('analyze'); scrollToTop()}} className="hover:text-blue-600">Document Audit</button></li>
+                            <li><button onClick={()=>{setCurrentView("dashboard"); setActiveTab('create'); scrollToTop()}} className="hover:text-blue-600">Legal Drafting</button></li>
                         </ul>
                     </div>
                     <div className="text-left">
                         <h4 className="font-bold text-slate-900 mb-4">Company</h4>
                         <ul className="space-y-2 text-sm text-slate-500">
-                            <li><button onClick={() => {setShowStory(true); scrollToTop()}} className="hover:text-blue-600 font-bold flex items-center gap-1"><BookOpen className="w-3 h-3"/> Our Story</button></li>
-                            <li><button onClick={() => {setShowContact(true); scrollToTop()}} className="hover:text-blue-600 font-bold flex items-center gap-1"><Mail className="w-3 h-3"/> Contact Us</button></li>
+                            <li><button onClick={() => {setCurrentView("story"); scrollToTop()}} className="hover:text-blue-600 font-bold flex items-center gap-1"><BookOpen className="w-3 h-3"/> Our Story</button></li>
+                            <li><button onClick={() => {setCurrentView("contact"); scrollToTop()}} className="hover:text-blue-600 font-bold flex items-center gap-1"><Mail className="w-3 h-3"/> Contact Us</button></li>
                             <li><a href={config.payLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-pink-600 font-bold hover:text-pink-700 mt-2"><Heart className="w-4 h-4 fill-current"/> Support Us</a></li>
                         </ul>
                     </div>
@@ -466,7 +503,6 @@ function AppContent() {
                 </div>
             </div>
         </footer>
-      )}
 
       {/* FLOATING ACTION BUTTON */}
       {showScrollTop && <button onClick={scrollToTop} className="fixed bottom-8 right-8 w-14 h-14 bg-slate-900 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-blue-600 transition-all z-50 animate-in fade-in slide-in-from-bottom-4"><ArrowUp className="w-6 h-6"/></button>}
@@ -478,29 +514,23 @@ function AppContent() {
                   <button onClick={() => setShowAuthModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600"><X className="w-6 h-6"/></button>
                   <h2 className="text-2xl font-black text-slate-900 mb-6">{authView === "login" ? "Welcome" : "Create Account"}</h2>
                   <form onSubmit={handleAuthSubmit} className="space-y-4">
-                      {authView === "signup" && <input type="text" placeholder="Name" required className="w-full p-4 rounded-xl border focus:border-blue-500 font-medium" onChange={e => setAuthForm({...authForm, name: e.target.value})}/>}
-                      {authView !== "otp" && <><input type="email" placeholder="Email" required className="w-full p-4 rounded-xl border focus:border-blue-500 font-medium" onChange={e => setAuthForm({...authForm, email: e.target.value})}/><input type="password" placeholder="Password" required className="w-full p-4 rounded-xl border focus:border-blue-500 font-medium" onChange={e => setAuthForm({...authForm, password: e.target.value})}/></>}
-                      {authView === "otp" && <input type="text" placeholder="OTP" className="w-full p-4 rounded-xl border text-center text-2xl focus:border-blue-500 font-medium" onChange={e => setOtpInput(e.target.value)}/>}
+                      {authView === "signup" && <input type="text" placeholder="Name" required className="w-full p-4 rounded-xl border focus:border-blue-500" onChange={e => setAuthForm({...authForm, name: e.target.value})}/>}
+                      {authView !== "otp" && <><input type="email" placeholder="Email" required className="w-full p-4 rounded-xl border focus:border-blue-500" onChange={e => setAuthForm({...authForm, email: e.target.value})}/><input type="password" placeholder="Password" required className="w-full p-4 rounded-xl border focus:border-blue-500" onChange={e => setAuthForm({...authForm, password: e.target.value})}/></>}
+                      {authView === "otp" && <input type="text" placeholder="OTP" className="w-full p-4 rounded-xl border text-center text-2xl focus:border-blue-500" onChange={e => setOtpInput(e.target.value)}/>}
                       <button className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 hover:scale-[1.02] transition-transform">{authView === "login" ? "Login" : authView === "signup" ? `Get ${config.symbol}${config.bonus} Free` : "Verify"}</button>
                   </form>
               </div>
           </div>
       )}
 
-      {/* PREMIUM WALLET MODAL (COMPACT & FIXED) */}
+      {/* PREMIUM WALLET MODAL */}
       {showWalletModal && (
           <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-md flex items-center justify-center z-50 p-4 animate-in zoom-in-95 duration-200">
-              <div className="bg-white p-6 rounded-[2rem] shadow-2xl max-w-md w-full text-center relative border border-white/50 max-h-[85vh] overflow-y-auto custom-scrollbar">
-                  {/* FIXED CLOSE BUTTON */}
-                  <button 
-                    onClick={() => setShowWalletModal(false)} 
-                    className="absolute top-5 right-5 text-slate-400 hover:text-slate-600 bg-white rounded-full p-1 shadow-md z-50 transition-colors"
-                  >
-                    <X className="w-5 h-5"/>
-                  </button>
+              <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-md w-full text-center relative border border-white/50 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                  <button onClick={() => setShowWalletModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 bg-white rounded-full p-1 shadow-sm z-50"><X className="w-5 h-5"/></button>
                   
                   {/* TABS SWITCHER */}
-                  <div className="flex bg-slate-100 p-1 rounded-xl mb-6 mt-2">
+                  <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
                       <button onClick={() => setWalletTab('topup')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${walletTab === 'topup' ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}>Top Up</button>
                       <button onClick={() => setWalletTab('premium')} className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${walletTab === 'premium' ? 'bg-white shadow text-blue-600' : 'text-slate-500'}`}>Premium</button>
                   </div>
@@ -511,37 +541,37 @@ function AppContent() {
                           <h3 className="text-xs font-bold text-slate-400 uppercase mb-1">Available Balance</h3>
                           <h2 className="text-3xl font-black mb-6">{config.symbol}{walletBalance}</h2>
                           <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-3 bg-slate-900 text-white rounded-xl font-bold mb-4 hover:scale-[1.02] transition-transform">Add Credits</a>
-                          <p className="text-[10px] text-slate-400 mb-4">Pay as you go. No expiration.</p>
+                          <p className="text-[10px] text-slate-400 mb-6">Pay as you go. No expiration.</p>
                       </>
                   ) : (
                       <>
-                          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4"><Crown className="w-6 h-6"/></div>
+                          <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4"><Crown className="w-8 h-8"/></div>
                           <h3 className="text-xs font-bold text-slate-400 uppercase mb-1">Unilex Pro</h3>
-                          <h2 className="text-2xl font-black mb-2">{config.symbol}{config.subs.monthly}<span className="text-sm text-slate-400 font-medium">/mo</span></h2>
+                          <h2 className="text-3xl font-black mb-2">{config.symbol}{config.subs.monthly}<span className="text-sm text-slate-400 font-medium">/mo</span></h2>
+                          <p className="text-slate-500 mb-6 text-xs">Unlimited Audits & Drafting. Priority Support.</p>
                           
-                          {/* COMPACT PRICING LIST */}
-                          <div className="space-y-2 mb-4">
-                              <div className="p-2 border rounded-lg flex justify-between items-center cursor-pointer hover:border-blue-500 bg-blue-50/50">
+                          <div className="space-y-2 mb-6">
+                              <div className="p-3 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500 bg-blue-50/50">
                                   <span className="font-bold text-xs">Monthly</span>
                                   <span className="font-black text-sm">{config.symbol}{config.subs.monthly}</span>
                               </div>
-                              <div className="p-2 border rounded-lg flex justify-between items-center cursor-pointer hover:border-blue-500">
-                                  <span className="font-bold text-xs">6 Months <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded ml-1">SAVE 15%</span></span>
+                              <div className="p-3 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500">
+                                  <span className="font-bold text-xs">6 Months <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-1">SAVE 15%</span></span>
                                   <span className="font-black text-sm">{config.symbol}{config.subs.halfYearly}</span>
                               </div>
-                              <div className="p-2 border rounded-lg flex justify-between items-center cursor-pointer hover:border-blue-500">
-                                  <span className="font-bold text-xs">Yearly <span className="text-[10px] bg-green-100 text-green-700 px-1 rounded ml-1">BEST</span></span>
+                              <div className="p-3 border rounded-xl flex justify-between items-center cursor-pointer hover:border-blue-500">
+                                  <span className="font-bold text-xs">Yearly <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded ml-1">BEST VALUE</span></span>
                                   <span className="font-black text-sm">{config.symbol}{config.subs.yearly}</span>
                               </div>
                           </div>
                           
                           <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:scale-[1.02] transition-transform">Subscribe Now</a>
-                          {/* EXIT BUTTON FOR PREMIUM TAB */}
-                          <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600 mt-3 mb-2">Maybe Later</button>
+                          {/* NEW: Back Option for Premium Tab */}
+                          <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600 mt-4 block w-full">Maybe Later</button>
                       </>
                   )}
 
-                  <div className="mt-2 pt-4 border-t border-slate-100">
+                  <div className="mt-4 pt-4 border-t border-slate-100">
                       <input type="text" placeholder="Transaction ID (Verification)" className="w-full p-2.5 rounded-lg border text-center text-xs font-mono mb-2" onChange={e => setTransactionId(e.target.value)}/>
                       <button onClick={handlePaymentVerify} className="text-xs font-bold text-green-600 hover:underline block w-full mb-2">Verify Transaction Manually</button>
                       {walletTab === 'topup' && <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600">Complete Later</button>}
