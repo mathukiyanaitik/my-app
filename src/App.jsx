@@ -65,7 +65,7 @@ const REGIONAL_CONFIG = {
     }
 };
 
-// --- 2. LOCALIZED DOCUMENT INTELLIGENCE (UPDATED FOR FREELANCERS) ---
+// --- 2. LOCALIZED DOCUMENT INTELLIGENCE ---
 const LOCALIZED_DOCS = {
     "India": [
         "Freelance/Consultancy Agreement", 
@@ -286,7 +286,15 @@ function AppContent() {
   };
 
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
-  const goHome = () => { scrollToTop(); setShowStory(false); setShowContact(false); setActiveTab("analyze"); };
+  
+  // FIXED: Logic to reset view to home
+  const goHome = () => { 
+      scrollToTop(); 
+      setShowStory(false); 
+      setShowContact(false); 
+      setActiveTab("analyze"); 
+  };
+  
   const handleContactSubmit = (e) => { e.preventDefault(); alert("Message sent! We will contact you at " + contactForm.email); setContactForm({name:"",email:"",phone:"",message:""}); setShowContact(false); };
 
   const processPaymentCheck = () => {
@@ -434,7 +442,18 @@ function AppContent() {
           <div className="max-w-4xl mx-auto px-6 py-20 animate-in fade-in">
               <button onClick={goHome} className="mb-8 flex items-center gap-2 text-slate-400 hover:text-slate-900 font-bold"><ChevronRight className="w-4 h-4 rotate-180"/> Back</button>
               <div className="text-center mb-16"><h1 className="text-6xl font-black text-slate-900 mb-6">The Unilex Vision</h1><p className="text-2xl text-slate-500 font-medium">Why we built the world's most essential legal brain.</p></div>
-              <div className="prose prose-lg prose-slate mx-auto"><p className="text-xl leading-relaxed mb-8">For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms.</p></div>
+              <div className="prose prose-lg prose-slate mx-auto">
+                  <p className="text-xl leading-relaxed mb-8">For centuries, high-quality legal intelligence was locked behind the expensive doors of elite law firms.</p>
+                  <p className="text-xl leading-relaxed mb-8">We asked a simple question: <strong>What if legal protection was as instant and accessible as sending a text?</strong></p>
+                  <div className="my-12 p-8 bg-blue-50 rounded-3xl border border-blue-100">
+                      <h3 className="text-2xl font-bold text-blue-900 mb-4 flex items-center gap-2"><Globe className="w-6 h-6"/> Uni + Lex</h3>
+                      <p className="text-blue-800">
+                          <strong>Uni</strong>versal Access + <strong>Lex</strong> (Law). 
+                          We combined military-grade encryption with state-of-the-art Generative AI to create a system that understands the nuance of Indian Law, US Law, and 100+ other jurisdictions instantly.
+                      </p>
+                  </div>
+                  <p className="text-xl leading-relaxed">Unilex AI isn't just a tool. It's a movement to democratize justice. Whether you are a freelancer in Bangalore signing your first contract, or a startup in Texas hiring your first employee, Unilex ensures you never sign blindly again.</p>
+              </div>
           </div>
       ) : showContact ? (
           <div className="max-w-xl mx-auto px-6 py-20 animate-in fade-in">
@@ -526,7 +545,7 @@ function AppContent() {
                             <div className={`w-8 h-8 rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center text-white`}>{!imgError ? <img src={logoImg} alt="Logo" className="w-full h-full object-cover"/> : <Globe className="w-5 h-5"/>}</div>
                             <span className="text-xl font-black text-slate-900">Unilex<span className="text-blue-600">AI</span></span>
                         </div>
-                        <p className="text-sm text-slate-500 max-w-sm leading-relaxed font-medium">Making elite legal intelligence seamless, instant, and accessible to everyone.</p>
+                        <p className="text-sm text-slate-500 max-w-sm leading-relaxed font-medium">Democratizing high-end legal intelligence. We combine advanced Generative AI with localized legal frameworks to make contract operations instant, affordable, and accessible.</p>
                     </div>
                     <div className="text-left">
                         <h4 className="font-bold text-slate-900 mb-4">Platform</h4>
