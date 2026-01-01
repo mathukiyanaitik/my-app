@@ -8,7 +8,7 @@ import {
     Zap, Heart, CheckCircle2, Building2, ChevronRight, Receipt, 
     ArrowUpRight, ChevronDown, Check, BookOpen, MessageSquare, 
     ArrowUp, Mail, Phone, Wallet, LogOut, X, Globe, Coins, RefreshCw,
-    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles, Crown, CreditCard, History, Scale
+    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles, Crown, CreditCard, History
 } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
@@ -65,15 +65,76 @@ const REGIONAL_CONFIG = {
     }
 };
 
-// --- 2. LOCALIZED DOCUMENT INTELLIGENCE ---
+// --- 2. LOCALIZED DOCUMENT INTELLIGENCE (UPDATED FOR FREELANCERS) ---
 const LOCALIZED_DOCS = {
-    "India": ["Rent Agreement (11 Months)", "Sale Deed", "Employment Letter", "NDA (Non-Disclosure)", "Partnership Deed", "GST Invoice Format", "Legal Notice", "Affidavit / Undertaking", "Power of Attorney"],
-    "United States": ["NDA (Non-Disclosure)", "Independent Contractor Agreement", "Employment Offer Letter", "Residential Lease", "LLC Operating Agreement", "SaaS Terms of Service", "Privacy Policy (GDPR/CCPA)", "Cease & Desist"],
-    "United Kingdom": ["AST (Tenancy Agreement)", "Employment Contract", "NDA", "Shareholders Agreement", "Privacy Policy", "Service Agreement"],
-    "United Arab Emirates": ["Tenancy Contract (Ejari Compliant)", "Employment Contract (MOL)", "Memorandum of Association (MoA)", "NDA", "Power of Attorney", "Commercial Lease"],
-    "Germany": ["Arbeitsvertrag (Employment)", "Mietvertrag (Rental)", "Geschäftsführervertrag", "NDA", "Datenschutzerklärung (GDPR)"],
-    "Australia": ["Residential Tenancy Agreement", "Employment Contract", "Contractor Agreement", "NDA", "Privacy Policy"],
-    "Global": ["Non-Disclosure Agreement (NDA)", "Service Agreement", "Employment Contract", "Rental Agreement", "Privacy Policy", "SaaS License", "Memorandum of Understanding"]
+    "India": [
+        "Freelance/Consultancy Agreement", 
+        "Service Retainer Agreement",
+        "Rent Agreement (11 Months)", 
+        "Sale Deed", 
+        "Employment Letter", 
+        "NDA (Non-Disclosure)", 
+        "Partnership Deed", 
+        "GST Invoice Format", 
+        "Legal Notice", 
+        "Affidavit / Undertaking"
+    ],
+    "United States": [
+        "Independent Contractor Agreement (Freelance)", 
+        "Consulting Agreement",
+        "NDA (Non-Disclosure)", 
+        "Employment Offer Letter", 
+        "Residential Lease", 
+        "LLC Operating Agreement", 
+        "SaaS Terms of Service", 
+        "Privacy Policy (GDPR/CCPA)", 
+        "Cease & Desist"
+    ],
+    "United Kingdom": [
+        "Freelance Services Agreement",
+        "Consultancy Agreement",
+        "AST (Tenancy Agreement)", 
+        "Employment Contract", 
+        "NDA", 
+        "Shareholders Agreement", 
+        "Privacy Policy"
+    ],
+    "United Arab Emirates": [
+        "Freelance Permit Contract",
+        "Service Agreement (Free Zone/Mainland)",
+        "Tenancy Contract (Ejari Compliant)", 
+        "Employment Contract (MOL)", 
+        "Memorandum of Association (MoA)", 
+        "NDA", 
+        "Power of Attorney"
+    ],
+    "Germany": [
+        "Freier Mitarbeitervertrag (Freelance)",
+        "Beratervertrag (Consulting)",
+        "Arbeitsvertrag (Employment)", 
+        "Mietvertrag (Rental)", 
+        "Geschäftsführervertrag", 
+        "NDA", 
+        "Datenschutzerklärung (GDPR)"
+    ],
+    "Australia": [
+        "Independent Contractor Agreement",
+        "Services Agreement",
+        "Residential Tenancy Agreement", 
+        "Employment Contract", 
+        "NDA", 
+        "Privacy Policy"
+    ],
+    "Global": [
+        "Freelance Service Agreement", 
+        "Consulting Contract",
+        "Non-Disclosure Agreement (NDA)", 
+        "Service Agreement", 
+        "Employment Contract", 
+        "Rental Agreement", 
+        "Privacy Policy", 
+        "SaaS License"
+    ]
 };
 
 // --- 3. ERROR BOUNDARY ---
@@ -553,6 +614,8 @@ function AppContent() {
                           </div>
                           
                           <a href={config.payLink} target="_blank" rel="noreferrer" className="block w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:scale-[1.02] transition-transform">Subscribe Now</a>
+                          {/* NEW: Back Option for Premium Tab */}
+                          <button onClick={() => setShowWalletModal(false)} className="text-xs font-bold text-slate-400 hover:text-slate-600 mt-4">Maybe Later</button>
                       </>
                   )}
 
