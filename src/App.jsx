@@ -1,4 +1,4 @@
-// --- CRITICAL FIX: PREVENT GLOBAL NAMESPACE POLLUTION ---
+// --- CRITICAL: PREVENT GLOBAL NAMESPACE POLLUTION ---
 window.global = window;
 
 import React, { useState, useEffect, useRef, Component } from 'react';
@@ -8,7 +8,7 @@ import {
     Zap, Heart, CheckCircle2, Building2, ChevronRight, Receipt, 
     ArrowUpRight, ChevronDown, Check, BookOpen, MessageSquare, 
     ArrowUp, Mail, Phone, Wallet, LogOut, X, Globe, Coins, RefreshCw,
-    FileText, FileType, Image as ImageIcon, MousePointer2
+    FileText, FileType, Image as ImageIcon, MousePointer2, Sparkles // FIXED: Added Sparkles
 } from 'lucide-react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import * as pdfjsLib from 'pdfjs-dist';
@@ -76,9 +76,7 @@ const CustomCursor = () => {
     useEffect(() => {
         const moveCursor = (e) => {
             if (cursorRef.current && cursorDotRef.current) {
-                // Main circle with delay
                 cursorRef.current.style.transform = `translate3d(${e.clientX - 16}px, ${e.clientY - 16}px, 0)`;
-                // Dot is instant
                 cursorDotRef.current.style.transform = `translate3d(${e.clientX - 4}px, ${e.clientY - 4}px, 0)`;
             }
         };
@@ -104,13 +102,11 @@ const CustomCursor = () => {
 
     return (
         <div className="pointer-events-none fixed inset-0 z-[9999] hidden md:block">
-            {/* Outer Ring */}
             <div 
                 ref={cursorRef} 
                 className="absolute w-8 h-8 border-2 border-blue-600 rounded-full transition-transform duration-100 ease-out will-change-transform"
                 style={{ top: 0, left: 0 }}
             />
-            {/* Inner Dot */}
             <div 
                 ref={cursorDotRef}
                 className="absolute w-2 h-2 bg-blue-600 rounded-full will-change-transform"
@@ -156,24 +152,21 @@ const CustomDropdown = ({ options, value, onChange, type = "text" }) => {
 
 // --- 4. MAIN APP LOGIC ---
 function AppContent() {
-  // --- STATE MANAGEMENT ---
+  // --- STATE ---
   const [activeTab, setActiveTab] = useState("analyze"); 
   const [loading, setLoading] = useState(false);
   const [imgError, setImgError] = useState(false); 
   const [showScrollTop, setShowScrollTop] = useState(false);
   
-  // Location & Context
   const [userLocation, setUserLocation] = useState("Global"); 
   const [jurisdiction, setJurisdiction] = useState("United States"); 
   const [walletBalance, setWalletBalance] = useState(0);
 
-  // Modals & Views
   const [showStory, setShowStory] = useState(false); 
   const [showContact, setShowContact] = useState(false); 
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
 
-  // Authentication
   const [user, setUser] = useState(null);
   const [authView, setAuthView] = useState("login"); 
   const [authForm, setAuthForm] = useState({ email: "", password: "", name: "", phone: "" });
@@ -181,14 +174,11 @@ function AppContent() {
   const [generatedOtp, setGeneratedOtp] = useState(null);
   const [authError, setAuthError] = useState("");
 
-  // Forms & Data
   const [contactForm, setContactForm] = useState({ name: "", email: "", phone: "", message: "" });
   const [transactionId, setTransactionId] = useState("");
   const [billingInfo, setBillingInfo] = useState({ address: "", city: "", state: "", zip: "" });
   
-  // Core Business Data
   const [transactions, setTransactions] = useState([]); 
-  const [documentHistory, setDocumentHistory] = useState([]);
   const [risks, setRisks] = useState(null);
   const [docType, setDocType] = useState("Non-Disclosure Agreement (NDA)"); 
   const [userScenario, setUserScenario] = useState("");
@@ -196,16 +186,13 @@ function AppContent() {
 
   const getConfig = () => REGIONAL_CONFIG[userLocation] || REGIONAL_CONFIG["Global"];
 
-  // --- INITIALIZATION EFFECTS ---
   useEffect(() => {
-    // Initialize PDF Worker safely
     const setWorker = async () => {
         try { pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`; } 
         catch (e) { console.error("PDF Worker Error", e); }
     };
     setWorker();
 
-    // Load User Data
     const currentUser = authService.getCurrentUser();
     if (currentUser) {
         setUser(currentUser);
@@ -213,13 +200,9 @@ function AppContent() {
         setWalletBalance(savedBalance ? parseFloat(savedBalance) : 0);
         const savedTxns = localStorage.getItem(`txns_${currentUser.email}`);
         setTransactions(savedTxns ? JSON.parse(savedTxns) : []);
-        // Load history safely
-        try { setDocumentHistory(historyService.getDocuments()); } catch(e) {}
     }
 
     detectUserLocation();
-
-    // Scroll Listener
     const handleScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -237,7 +220,6 @@ function AppContent() {
       } catch (e) { console.warn("Location detection failed"); }
   };
 
-  // --- NAVIGATION HELPERS ---
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const goHome = () => { scrollToTop(); setShowStory(false); setShowContact(false); setActiveTab("analyze"); };
   const handleContactSubmit = (e) => { 
@@ -247,7 +229,6 @@ function AppContent() {
       setShowContact(false); 
   };
 
-  // --- PAYMENT LOGIC ---
   const processPaymentCheck = () => {
       const config = getConfig();
       if (walletBalance >= config.cost) {
@@ -287,9 +268,6 @@ function AppContent() {
       setShowWalletModal(false); setTransactionId("");
   };
 
-  // --- AUTH LOGIC ---
-  const openAuth = (view) => { setAuthView(view); setShowAuthModal(true); setAuthError(""); setAuthForm({email:"",password:"",name:"",phone:""}); setOtpInput(""); };
-
   const handleAuthSubmit = async (e) => {
     e.preventDefault(); setAuthError(""); const config = getConfig();
     if (authView === "signup") { const fakeOtp = Math.floor(1000 + Math.random() * 9000).toString(); setGeneratedOtp(fakeOtp); alert(`[SIMULATION] OTP: ${fakeOtp}`); setAuthView("otp"); } 
@@ -308,7 +286,6 @@ function AppContent() {
 
   const handleLogout = () => { authService.logout(); setUser(null); setWalletBalance(0); setTransactions([]); };
 
-  // --- AI GENERATION (SAFE MODE) ---
   const handleCreateDoc = async () => {
       if (!user) { setAuthView("signup"); setShowAuthModal(true); return; }
       if (!processPaymentCheck()) return;
@@ -324,10 +301,8 @@ function AppContent() {
       finally { setLoading(false); }
   };
 
-  // --- DOCX DOWNLOAD (CRASH PROOF) ---
   const downloadDocx = (text, name) => {
       try {
-          // Using the aliased 'docx' import from 'import * as docx'
           const doc = new docx.Document({
               sections: [{ children: text.split('\n').map(l => new docx.Paragraph({ children: [new docx.TextRun(l)] })) }]
           });
@@ -459,7 +434,7 @@ function AppContent() {
                     <div className="space-y-8">
                         <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Type</label><CustomDropdown options={docTypes} value={docType} onChange={setDocType}/></div>
                         <div><label className="block text-xs font-bold text-slate-400 uppercase mb-2">Scenario</label><textarea value={userScenario} onChange={e => setUserScenario(e.target.value)} placeholder="Describe details..." className="w-full p-5 bg-white rounded-xl border h-40"></textarea></div>
-                        <button onClick={handleCreateDoc} disabled={loading} className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 flex justify-center gap-2 shadow-lg hover:scale-[1.01] transition-transform">{loading ? <Loader2 className="animate-spin"/> : <Sparkles/>} Generate ({config.symbol}{config.cost})</button>
+                        <button onClick={handleCreateDoc} disabled={loading} className="w-full py-4 rounded-xl text-white font-bold bg-slate-900 flex justify-center gap-2 shadow-lg hover:scale-[1.01] transition-transform">{loading ? <Loader2 className="animate-spin"/> : <Sparkles className="w-5 h-5"/>} Generate ({config.symbol}{config.cost})</button>
                     </div>
                     {generatedDoc && (
                         <div className="mt-10 pt-8 border-t"><div className="flex justify-between mb-4"><h3 className="font-bold">Draft Ready</h3><button onClick={() => downloadDocx(generatedDoc, "Draft.docx")} className="text-blue-600 font-bold flex gap-2"><Download className="w-4 h-4"/> Download</button></div><div className="p-6 bg-white rounded-xl border h-80 overflow-y-auto whitespace-pre-wrap text-xs">{generatedDoc}</div></div>
