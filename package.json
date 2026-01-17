@@ -14,8 +14,8 @@
     "docx": "^8.5.0",
     "file-saver": "^2.0.5",
     "lucide-react": "^0.454.0",
-    "mammoth": "^1.7.3",
-    "pdfjs-dist": "^4.7.103",
+    "mammoth": "^1.11.0",
+    "pdfjs-dist": "^4.10.38",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
